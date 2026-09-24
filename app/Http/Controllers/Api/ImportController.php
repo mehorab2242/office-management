@@ -29,10 +29,10 @@ class ImportController extends Controller
             'sheets.*.header_row' => ['required', 'integer', 'min:1'], 'sheets.*.mapping' => ['required', 'array'],
             'sheets.*.mapping.description' => ['required', 'string'], 'sheets.*.mapping.amount' => ['required', 'string'],
             'sheets.*.mapping.expense_date' => ['required', 'string'],
-            'sheets.*.mapping.payer' => ['sometimes', 'string'],
-            'sheets.*.mapping.category' => ['sometimes', 'string'],
-            'sheets.*.mapping.payment_status' => ['sometimes', 'string'],
-            'sheets.*.mapping.payment_method' => ['sometimes', 'string'],
+            'sheets.*.mapping.payer' => ['sometimes', 'nullable', 'string'],
+            'sheets.*.mapping.category' => ['sometimes', 'nullable', 'string'],
+            'sheets.*.mapping.payment_status' => ['sometimes', 'nullable', 'string'],
+            'sheets.*.mapping.payment_method' => ['sometimes', 'nullable', 'string'],
         ]);
 
         return response()->json(['success' => true, 'data' => $imports->preview($batch, $data)]);

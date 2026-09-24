@@ -4,8 +4,11 @@ namespace App\Services;
 
 use Illuminate\Database\Eloquent\Builder;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
+use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 class SpreadsheetExportService
@@ -34,6 +37,7 @@ class SpreadsheetExportService
             ['Average (BDT)', (float) ($summary['average_amount'] ?? 0)],
         ]);
         $this->formatTable($summarySheet, 2, 8);
+        $summarySheet->getStyle('B2:B8')->getNumberFormat()->setFormatCode('#,##0.00');
         $summarySheet->setCellValue('D1', $title);
         $summarySheet->getStyle('D1')->getFont()->setBold(true)->setSize(14);
 
@@ -43,10 +47,12 @@ class SpreadsheetExportService
         $categorySheet->fromArray([['Category', 'Total (BDT)']]);
         $row = 2;
         foreach ($categories as $category) {
-            $categorySheet->fromArray([$category['name'], (float) $category['total']], null, "A{$row}");
+            $categorySheet->setCellValueExplicit("A{$row}", $category['name'], DataType::TYPE_STRING);
+            $categorySheet->setCellValue("B{$row}", (float) $category['total']);
             $row++;
         }
         $this->formatTable($categorySheet, 2, max(1, $row - 1));
+        $categorySheet->getStyle("B2:B{$row}")->getNumberFormat()->setFormatCode('#,##0.00');
 
         if ($months !== null) {
             $monthSheet = $spreadsheet->createSheet();
@@ -62,6 +68,7 @@ class SpreadsheetExportService
                 $row++;
             }
             $this->formatTable($monthSheet, 3, max(1, $row - 1));
+            $monthSheet->getStyle("B2:B{$row}")->getNumberFormat()->setFormatCode('#,##0.00');
         }
 
         $spreadsheet->setActiveSheetIndex(0);
@@ -75,16 +82,16 @@ class SpreadsheetExportService
         $spreadsheet->disconnectWorksheets();
     }
 
-    private function writeExpenses(object $sheet, Builder $query, string $title): void
+    private function writeExpenses(Worksheet $sheet, Builder $query, string $title): void
     {
         $sheet->setTitle(substr($title, 0, 31));
         $headers = ['Date', 'Period', 'Description', 'Category', 'Amount (BDT)', 'Status', 'Method', 'Paid by', 'Reference', 'Note', 'Created by'];
         $sheet->fromArray($headers);
         $row = 2;
-        foreach ((clone $query)->with(['category', 'payerAllocations'])->cursor() as $expense) {
+        foreach ((clone $query)->with(['category', 'payerAllocations', 'creator'])->lazy(500) as $expense) {
             $sheet->fromArray([
-                $expense->expense_date?->format('Y-m-d'),
-                $expense->period_month?->format('Y-m'),
+                $expense->expense_date ? ExcelDate::PHPToExcel($expense->expense_date) : null,
+                $expense->period_month ? ExcelDate::PHPToExcel($expense->period_month) : null,
                 $expense->description,
                 $expense->category?->name ?? 'Uncategorized',
                 (float) $expense->amount,
@@ -95,13 +102,18 @@ class SpreadsheetExportService
                 $expense->note,
                 $expense->creator?->name,
             ], null, "A{$row}");
+            foreach (['C', 'D', 'F', 'G', 'H', 'I', 'J', 'K'] as $column) {
+                $sheet->setCellValueExplicit("{$column}{$row}", (string) ($sheet->getCell("{$column}{$row}")->getValue() ?? ''), DataType::TYPE_STRING);
+            }
             $row++;
         }
         $this->formatTable($sheet, count($headers), max(1, $row - 1));
+        $sheet->getStyle("A2:A{$row}")->getNumberFormat()->setFormatCode('yyyy-mm-dd');
+        $sheet->getStyle("B2:B{$row}")->getNumberFormat()->setFormatCode('yyyy-mm');
         $sheet->getStyle("E2:E{$row}")->getNumberFormat()->setFormatCode('#,##0.00');
     }
 
-    private function formatTable(object $sheet, int $columns, int $lastRow): void
+    private function formatTable(Worksheet $sheet, int $columns, int $lastRow): void
     {
         $lastColumn = Coordinate::stringFromColumnIndex($columns);
         $sheet->freezePane('A2');

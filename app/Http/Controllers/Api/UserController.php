@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\AuditLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\ValidationException;
 
 class UserController extends Controller
 {
@@ -51,8 +52,17 @@ class UserController extends Controller
 
     public function update(UpdateUserRequest $request, User $user, AuditLogger $auditLogger): JsonResponse
     {
+        $validated = $request->validated();
+        if ($request->user()->is($user) && array_key_exists('is_active', $validated) && ! $validated['is_active']) {
+            throw ValidationException::withMessages(['is_active' => ['You cannot deactivate your own account.']]);
+        }
+        $removesAdministratorAccess = $user->isAdmin()
+            && (($validated['role'] ?? User::ROLE_ADMIN) !== User::ROLE_ADMIN || ($validated['is_active'] ?? true) === false);
+        if ($removesAdministratorAccess && User::query()->where('role', User::ROLE_ADMIN)->where('is_active', true)->count() <= 1) {
+            throw ValidationException::withMessages(['role' => ['At least one active administrator is required.']]);
+        }
         $before = $user->only(['name', 'email', 'role', 'is_active']);
-        $user->update($request->validated());
+        $user->update($validated);
         $auditLogger->record($request->user(), 'user.updated', $user, $before, $user->only(['name', 'email', 'role', 'is_active']));
 
         return response()->json([

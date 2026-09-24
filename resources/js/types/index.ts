@@ -100,10 +100,12 @@ export interface MonthlyCategoryTotal {
 export interface MonthlyReport extends ExpenseSummary {
     period_month: string;
     categories: MonthlyCategoryTotal[];
+    expenses: Expense[];
+    meta: PaginationMeta;
 }
 
 export interface MonthTotal { month: number; total: string; transaction_count: number; }
-export interface ReportData { summary: ExpenseSummary; categories: MonthlyCategoryTotal[]; expenses?: Expense[]; meta?: PaginationMeta; months?: MonthTotal[]; year?: number; }
+export interface ReportData { summary: ExpenseSummary; categories: MonthlyCategoryTotal[]; expenses?: Expense[]; meta?: PaginationMeta; months?: MonthTotal[]; year?: number; average_monthly_amount?: string; }
 export interface AuditLog { id: number; actor_user_id: number | null; actor: Pick<User, 'id' | 'name'> | null; action: string; subject_type: string; subject_id: number; old_values: Record<string, unknown> | null; new_values: Record<string, unknown> | null; created_at: string; }
 export interface ImportSheet { name: string; highest_row: number; header_row: number | null; suggested_mapping: Record<string, string>; importable: boolean; }
 export interface ImportRow { id: number; sheet_name: string; row_number: number; values: Record<string, string | number | null>; errors: string[]; status: string; }

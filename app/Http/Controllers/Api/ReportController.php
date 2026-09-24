@@ -23,7 +23,7 @@ class ReportController extends Controller
         $summary = $reports->summary($query);
 
         return response()->json(['success' => true, 'data' => [
-            'year' => (int) $validated['year'], 'summary' => $reports->summary($query),
+            'year' => (int) $validated['year'], 'summary' => $summary,
             'average_monthly_amount' => bcdiv($summary['total_amount'], '12', 2),
             'months' => $reports->months((int) $validated['year']), 'categories' => $reports->categories($query),
         ]]);

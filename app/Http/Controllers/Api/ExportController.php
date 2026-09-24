@@ -9,8 +9,10 @@ use App\Services\ExpenseQuery;
 use App\Services\PdfReportService;
 use App\Services\ReportService;
 use App\Services\SpreadsheetExportService;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -58,6 +60,7 @@ class ExportController extends Controller
         return $this->pdf($pdf, $expenses->build($request->safe()->except(['page', 'per_page'])), $reports, 'Custom expense report', 'custom-report.pdf');
     }
 
+    /** @return array{0: Builder<Expense>, 1: string} */
     private function periodQuery(Request $request): array
     {
         Gate::authorize('viewAny', Expense::class);
@@ -67,14 +70,14 @@ class ExportController extends Controller
         return [$query, date('F Y', mktime(0, 0, 0, (int) $data['month'], 1, (int) $data['year']))];
     }
 
-    private function xlsx(SpreadsheetExportService $exports, object $spreadsheet, string $filename): StreamedResponse
+    private function xlsx(SpreadsheetExportService $exports, Spreadsheet $spreadsheet, string $filename): StreamedResponse
     {
         return response()->streamDownload(fn () => $exports->output($spreadsheet), $filename, [
             'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         ]);
     }
 
-    private function pdf(PdfReportService $pdf, object $query, ReportService $reports, string $title, string $filename): Response
+    private function pdf(PdfReportService $pdf, Builder $query, ReportService $reports, string $title, string $filename): Response
     {
         $content = $pdf->render([
             'title' => $title,

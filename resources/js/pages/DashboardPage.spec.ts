@@ -13,7 +13,7 @@ describe('DashboardPage', () => {
         useAuthStore().user = { id: 1, name: 'Admin', email: 'admin@example.com', role: 'admin', is_active: true };
         const summary = { total_amount: '1000.00', paid_amount: '700.00', unpaid_amount: '200.00', pending_amount: '100.00', unspecified_amount: '0.00', transaction_count: 3 };
         vi.mocked(dashboardService.getDashboard).mockResolvedValue({ ...summary, current_month: summary });
-        vi.mocked(dashboardService.getMonthlyReport).mockResolvedValue({ ...summary, period_month: '2026-09-01', categories: [] });
+        vi.mocked(dashboardService.getMonthlyReport).mockResolvedValue({ ...summary, period_month: '2026-09-01', categories: [], expenses: [], meta: { current_page: 1, last_page: 1, per_page: 15, total: 0 } });
     });
 
     it('loads totals and refreshes the report when the month changes', async () => {

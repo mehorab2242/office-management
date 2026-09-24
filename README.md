@@ -2,6 +2,17 @@
 
 Laravel 13 and Vue 3 application for recording, importing, and reporting office costs in BDT. The responsive interface includes authentication, dashboard summaries, expense and attachment management, monthly, yearly, and custom reports, controlled workbook imports, user administration, and audit history.
 
+## Features
+
+- Sanctum authentication with active-account checks and administrator/staff authorization
+- Expense CRUD, search, filters, sorting, pagination, payer allocations, and private receipt attachments
+- Category and user management with activation controls
+- Dashboard totals, monthly trend, category breakdown, and recent expenses
+- Monthly, yearly, and custom reports using database aggregation
+- Filter-aware Excel exports and printable PDF reports
+- Controlled Excel import with sheet selection, editable column mapping, row preview, duplicate detection, category decisions, transaction safety, and reconciliation
+- Filterable administrator audit log
+
 ## Requirements
 
 - PHP 8.4 or newer with `bcmath`, `fileinfo`, `pdo_mysql`, and `pdo_sqlite` for tests
@@ -57,7 +68,7 @@ Run `npm run typecheck`, `npm run test:frontend`, and `npm run build` to verify 
 
 All expense amounts use `DECIMAL(12,2)`; calculated totals are queried, never stored. `expense_date` may be null for legacy costs without a known day. `period_month` always stores the first day of the known month and drives monthly reporting, including undated costs. New dated expenses derive it automatically. Payment status is nullable because the workbook has none; new records may use `paid`, `unpaid`, or `pending`. Payment method is optional text because the workbook has no method list. Payers are separate allocations and may split an expense. Their amounts must equal the expense amount.
 
-Workbook import is a three-step review: analyze sheets and detected headers, preview normalized rows and errors, then commit valid nonduplicate rows in one transaction. Formula cells retain their source formula while imports use the evaluated value. Unknown categories require an explicit choice to create them or leave the row uncategorized. Marketing and item sheets are not silently added to the expense ledger. Stored timestamps remain UTC; `APP_DISPLAY_TIMEZONE` defaults to `Asia/Dhaka` for date-sensitive summaries and UI display.
+Workbook import is a three-step review: analyze sheets and detected headers, preview normalized rows and errors, then commit valid nonduplicate rows in one transaction. Formula cells retain their source formula while imports use the evaluated value. Unknown categories require an explicit choice to create them, map them to an existing category, or skip their rows. Marketing and item sheets are not silently added to the expense ledger. Stored timestamps remain UTC; `APP_DISPLAY_TIMEZONE` defaults to `Asia/Dhaka` for date-sensitive summaries and UI display.
 
 Receipt files use Laravel's private `local` disk and are downloadable only through an authorized API route. Uploads accept PDF, JPEG, PNG, and WebP up to 10 MB. Audit records exclude passwords and tokens.
 

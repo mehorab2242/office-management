@@ -26,6 +26,7 @@ export function createAppRouter(): Router {
             { path: '/expenses/create', name: 'expense-create', component: ExpenseFormPage, meta: { auth: true } },
             { path: '/expenses/:id/edit', name: 'expense-edit', component: ExpenseFormPage, meta: { auth: true } },
             { path: '/categories', name: 'categories', component: CategoryListPage, meta: { auth: true, admin: true } },
+            { path: '/reports', redirect: { name: 'report-monthly' } },
             { path: '/reports/monthly', name: 'report-monthly', component: MonthlyReportPage, meta: { auth: true } },
             { path: '/reports/yearly', name: 'report-yearly', component: YearlyReportPage, meta: { auth: true } },
             { path: '/reports/custom', name: 'report-custom', component: CustomReportPage, meta: { auth: true } },

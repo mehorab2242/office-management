@@ -15,6 +15,7 @@ use Illuminate\Validation\ValidationException;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 class WorkbookImportService
 {
@@ -29,13 +30,16 @@ class WorkbookImportService
 
     public function analyze(UploadedFile $file, User $actor): array
     {
-        $hash = hash_file('sha256', $file->getRealPath());
+        $contents = $file->get();
+        $hash = hash('sha256', $contents);
         $batch = ImportBatch::create([
             'source_name' => $file->getClientOriginalName(), 'file_sha256' => $hash,
             'status' => 'analyzed', 'uploaded_by' => $actor->id,
         ]);
-        Storage::disk('local')->putFileAs("imports/{$batch->id}", $file, 'source.xlsx');
-        $workbook = IOFactory::load($file->getRealPath());
+        $extension = mb_strtolower($file->getClientOriginalExtension()) ?: 'xlsx';
+        $storagePath = "imports/{$batch->id}/source.{$extension}";
+        Storage::disk('local')->put($storagePath, $contents);
+        $workbook = IOFactory::load(Storage::disk('local')->path($storagePath));
         $sheets = [];
         foreach ($workbook->getWorksheetIterator() as $sheet) {
             [$headerRow, $mapping] = $this->detectHeader($sheet);
@@ -56,11 +60,12 @@ class WorkbookImportService
     public function preview(ImportBatch $batch, array $config): array
     {
         $this->ensureOpen($batch);
-        $path = Storage::disk('local')->path("imports/{$batch->id}/source.xlsx");
+        $path = Storage::disk('local')->path($this->sourceStoragePath($batch));
         abort_unless(is_file($path), 404, 'The uploaded workbook is no longer available.');
         $workbook = IOFactory::load($path);
         $batch->rows()->delete();
         $preview = [];
+        $seenRows = [];
 
         foreach ($config['sheets'] as $selection) {
             $sheet = $workbook->getSheetByName($selection['name']);
@@ -79,7 +84,12 @@ class WorkbookImportService
                     continue;
                 }
                 $errors = $this->validateRow($values);
-                $status = $errors === [] ? ($this->isDuplicate($values) ? 'duplicate' : 'valid') : 'invalid';
+                $duplicateKey = $this->duplicateKey($values);
+                $isDuplicate = $errors === [] && ($this->isDuplicate($values) || isset($seenRows[$duplicateKey]));
+                $status = $errors === [] ? ($isDuplicate ? 'duplicate' : 'valid') : 'invalid';
+                if ($errors === []) {
+                    $seenRows[$duplicateKey] = true;
+                }
                 $row = $batch->rows()->create([
                     'sheet_name' => $sheet->getTitle(), 'row_number' => $rowNumber,
                     'raw_values' => $values, 'raw_formulas' => $this->formulas($sheet, $rowNumber, $mapping),
@@ -104,29 +114,36 @@ class WorkbookImportService
         $categoryMap = $config['category_map'] ?? [];
         $created = DB::transaction(function () use ($batch, $categoryMap, $actor, $audit): int {
             $created = 0;
-            foreach ($batch->rows()->where('status', 'valid')->orderBy('id')->get() as $row) {
-                $values = $row->raw_values;
-                if ($this->isDuplicate($values)) {
-                    $row->update(['status' => 'duplicate']);
+            $batch->rows()->where('status', 'valid')->orderBy('id')->chunkById(500, function ($rows) use ($categoryMap, $actor, &$created): void {
+                foreach ($rows as $row) {
+                    $values = $row->raw_values;
+                    if ($this->isDuplicate($values)) {
+                        $row->update(['status' => 'duplicate']);
 
-                    continue;
+                        continue;
+                    }
+                    if ($this->shouldSkipUnknownCategory($values['category'] ?? null, $categoryMap)) {
+                        $row->update(['status' => 'skipped', 'validation_errors' => ['Unknown category was set to skip.']]);
+
+                        continue;
+                    }
+                    $categoryId = $this->resolveCategory($values['category'] ?? null, $categoryMap);
+                    $expense = Expense::create([
+                        'period_month' => substr($values['expense_date'], 0, 7).'-01',
+                        'expense_date' => $values['expense_date'], 'description' => $values['description'],
+                        'amount' => $values['amount'], 'category_id' => $categoryId,
+                        'payment_status' => $this->paymentStatus($values['payment_status'] ?? null),
+                        'payment_method' => $values['payment_method'] ?? null,
+                        'created_by' => $actor->id, 'updated_by' => $actor->id,
+                        'import_batch_id' => $batch->id, 'source_sheet' => $row->sheet_name, 'source_row' => $row->row_number,
+                    ]);
+                    if (! empty($values['payer'])) {
+                        $expense->payerAllocations()->create(['payer_name' => $values['payer'], 'amount' => $values['amount']]);
+                    }
+                    $row->update(['status' => 'imported', 'expense_id' => $expense->id]);
+                    $created++;
                 }
-                $categoryId = $this->resolveCategory($values['category'] ?? null, $categoryMap);
-                $expense = Expense::create([
-                    'period_month' => substr($values['expense_date'], 0, 7).'-01',
-                    'expense_date' => $values['expense_date'], 'description' => $values['description'],
-                    'amount' => $values['amount'], 'category_id' => $categoryId,
-                    'payment_status' => $this->paymentStatus($values['payment_status'] ?? null),
-                    'payment_method' => $values['payment_method'] ?? null,
-                    'created_by' => $actor->id, 'updated_by' => $actor->id,
-                    'import_batch_id' => $batch->id, 'source_sheet' => $row->sheet_name, 'source_row' => $row->row_number,
-                ]);
-                if (! empty($values['payer'])) {
-                    $expense->payerAllocations()->create(['payer_name' => $values['payer'], 'amount' => $values['amount']]);
-                }
-                $row->update(['status' => 'imported', 'expense_id' => $expense->id]);
-                $created++;
-            }
+            });
             $batch->update(['status' => 'completed']);
             $audit->record($actor, 'import.completed', $batch, null, ['imported_rows' => $created, 'source_name' => $batch->source_name]);
 
@@ -138,7 +155,7 @@ class WorkbookImportService
 
     public function result(ImportBatch $batch, ?int $created = null): array
     {
-        $sourceRows = $batch->rows()->whereIn('status', ['valid', 'imported', 'duplicate'])->get();
+        $sourceRows = $batch->rows()->whereIn('status', ['valid', 'imported', 'duplicate', 'skipped'])->get();
         $expenses = $batch->expenses();
         $sourceTotal = $sourceRows->sum(fn (ImportRow $row): float => (float) ($row->raw_values['amount'] ?? 0));
         $databaseTotal = (float) $expenses->sum('amount');
@@ -147,17 +164,24 @@ class WorkbookImportService
             'batch' => $this->batchData($batch), 'imported_count' => $created ?? $expenses->count(),
             'invalid_count' => $batch->rows()->where('status', 'invalid')->count(),
             'duplicate_count' => $batch->rows()->where('status', 'duplicate')->count(),
+            'skipped_count' => $batch->rows()->where('status', 'skipped')->count(),
+            'problem_rows' => $batch->rows()->whereIn('status', ['invalid', 'duplicate', 'skipped'])
+                ->orderBy('sheet_name')->orderBy('row_number')->get()->map(fn (ImportRow $row): array => $this->rowData($row))->all(),
             'verification' => [
                 'source_count' => $sourceRows->count(), 'database_count' => $expenses->count(),
                 'source_total' => number_format($sourceTotal, 2, '.', ''),
                 'database_total' => number_format($databaseTotal, 2, '.', ''),
                 'difference' => number_format($sourceTotal - $databaseTotal, 2, '.', ''),
                 'payment_totals' => $expenses->selectRaw("COALESCE(payment_status, 'unspecified') as status, SUM(amount) as total")->groupBy('payment_status')->pluck('total', 'status'),
+                'category_totals' => Expense::query()->where('import_batch_id', $batch->id)
+                    ->leftJoin('categories', 'categories.id', 'expenses.category_id')
+                    ->selectRaw("COALESCE(categories.name, 'Uncategorized') as category, SUM(expenses.amount) as total")
+                    ->groupBy('categories.id', 'categories.name')->pluck('total', 'category'),
             ],
         ];
     }
 
-    private function detectHeader(object $sheet): array
+    private function detectHeader(Worksheet $sheet): array
     {
         for ($row = 1; $row <= min(20, $sheet->getHighestDataRow()); $row++) {
             $mapping = [];
@@ -176,7 +200,7 @@ class WorkbookImportService
         return [null, []];
     }
 
-    private function mappedRow(object $sheet, int $row, array $mapping): array
+    private function mappedRow(Worksheet $sheet, int $row, array $mapping): array
     {
         $values = [];
         foreach ($mapping as $field => $column) {
@@ -195,7 +219,7 @@ class WorkbookImportService
         return $values;
     }
 
-    private function lastMappedRow(object $sheet, array $mapping, int $minimum): int
+    private function lastMappedRow(Worksheet $sheet, array $mapping, int $minimum): int
     {
         for ($row = $sheet->getHighestDataRow(); $row > $minimum; $row--) {
             foreach ($mapping as $column) {
@@ -222,7 +246,7 @@ class WorkbookImportService
         }
     }
 
-    private function formulas(object $sheet, int $row, array $mapping): ?array
+    private function formulas(Worksheet $sheet, int $row, array $mapping): ?array
     {
         $formulas = [];
         foreach ($mapping as $field => $column) {
@@ -258,6 +282,15 @@ class WorkbookImportService
             ->where('amount', $values['amount'])->exists();
     }
 
+    private function duplicateKey(array $values): string
+    {
+        return implode('|', [
+            $values['expense_date'] ?? '',
+            mb_strtolower(trim((string) ($values['description'] ?? ''))),
+            number_format((float) ($values['amount'] ?? 0), 2, '.', ''),
+        ]);
+    }
+
     private function resolveCategory(?string $name, array $map): ?int
     {
         if (! $name) {
@@ -276,6 +309,15 @@ class WorkbookImportService
         }
 
         return null;
+    }
+
+    private function shouldSkipUnknownCategory(?string $name, array $map): bool
+    {
+        if (! $name || Category::query()->whereRaw('LOWER(name) = ?', [mb_strtolower($name)])->exists()) {
+            return false;
+        }
+
+        return ! isset($map[$name]) || $map[$name] === 'skip';
     }
 
     private function paymentStatus(?string $status): ?string
@@ -313,5 +355,12 @@ class WorkbookImportService
     {
         return ['id' => $batch->id, 'source_name' => $batch->source_name, 'status' => $batch->status,
             'created_at' => $batch->created_at?->toIso8601String()];
+    }
+
+    private function sourceStoragePath(ImportBatch $batch): string
+    {
+        $extension = mb_strtolower(pathinfo($batch->source_name, PATHINFO_EXTENSION)) ?: 'xlsx';
+
+        return "imports/{$batch->id}/source.{$extension}";
     }
 }

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue';
-import { Eye, Pencil, Plus, Search, Trash2 } from '@lucide/vue';
+import { Download, Eye, Pencil, Plus, Search, Trash2 } from '@lucide/vue';
 import AppLayout from '../components/layout/AppLayout.vue';
 import BaseButton from '../components/ui/BaseButton.vue';
 import BaseDialog from '../components/ui/BaseDialog.vue';
@@ -10,6 +10,7 @@ import StatusBadge from '../components/ui/StatusBadge.vue';
 import ExpenseDetailDialog from '../components/expenses/ExpenseDetailDialog.vue';
 import { listCategories } from '../services/categories';
 import { deleteExpense, listExpenses } from '../services/expenses';
+import { downloadExport } from '../services/reports';
 import { apiErrorMessage } from '../services/api';
 import { useAuthStore } from '../stores/auth';
 import { useToast } from '../composables/useToast';
@@ -34,17 +35,26 @@ const showingTo = computed(() => Math.min(meta.value.current_page * meta.value.p
 async function load(page = 1): Promise<void> {
     loading.value = true; error.value = '';
     try {
-        const response = await listExpenses({
-            page, per_page: meta.value.per_page, search: filters.search || undefined,
+        const response = await listExpenses({ page, per_page: meta.value.per_page, ...activeFilters() });
+        expenses.value = response.data; meta.value = response.meta;
+    } catch (caught) { error.value = apiErrorMessage(caught, 'Unable to load expenses.'); }
+    finally { loading.value = false; }
+}
+
+function activeFilters() {
+    return {
+            search: filters.search || undefined,
             category_id: Number(filters.category_id) || undefined, payment_status: filters.payment_status || undefined,
             payment_method: filters.payment_method || undefined,
             date_from: filters.date_from || undefined, date_to: filters.date_to || undefined,
             amount_min: Number(filters.amount_min) || undefined, amount_max: Number(filters.amount_max) || undefined,
             sort: filters.sort, direction: filters.direction,
-        });
-        expenses.value = response.data; meta.value = response.meta;
-    } catch (caught) { error.value = apiErrorMessage(caught, 'Unable to load expenses.'); }
-    finally { loading.value = false; }
+        };
+}
+
+async function exportExpenses(): Promise<void> {
+    try { await downloadExport('/exports/expenses.xlsx', activeFilters(), 'filtered-expenses.xlsx'); }
+    catch (caught) { toast.show('Unable to export expenses', 'error', apiErrorMessage(caught)); }
 }
 
 function clearFilters(): void {
@@ -74,7 +84,7 @@ onMounted(async () => { try { categories.value = await listCategories(); } catch
 </script>
 <template>
     <AppLayout>
-        <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"><div><p class="text-sm font-medium text-brand-700">Management</p><h1 class="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">Expenses</h1><p class="mt-1 text-sm text-slate-500">{{ meta.total }} recorded expenses</p></div><RouterLink :to="{ name: 'expense-create' }" class="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"><Plus class="size-4" />Add expense</RouterLink></div>
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"><div><p class="text-sm font-medium text-brand-700">Management</p><h1 class="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">Expenses</h1><p class="mt-1 text-sm text-slate-500">{{ meta.total }} recorded expenses</p></div><div class="flex flex-wrap gap-2"><BaseButton variant="secondary" @click="exportExpenses"><Download class="size-4" />Export Excel</BaseButton><RouterLink :to="{ name: 'expense-create' }" class="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"><Plus class="size-4" />Add expense</RouterLink></div></div>
         <section class="card mt-6">
             <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-8">
                 <label class="relative xl:col-span-2"><span class="sr-only">Search expenses</span><Search class="pointer-events-none absolute left-3 top-3.5 size-4 text-slate-400" /><input v-model="filters.search" class="field mt-0 pl-9" placeholder="Search descriptions" /></label>
