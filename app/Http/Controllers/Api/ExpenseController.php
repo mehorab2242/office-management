@@ -49,7 +49,7 @@ class ExpenseController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => (new ExpenseResource($expense->load(['category', 'creator', 'payerAllocations'])))->resolve(),
+            'data' => (new ExpenseResource($expense->load(['category', 'creator', 'payerAllocations', 'attachments'])))->resolve(),
         ]);
     }
 

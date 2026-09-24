@@ -1,0 +1,8 @@
+import { api } from './api';
+import type { ApiResponse, ImportRow, ImportSheet } from '../types';
+export interface ImportAnalysis { batch: { id: number; source_name: string; status: string }; sheets: ImportSheet[]; duplicate_file: boolean; }
+export interface ImportPreview { batch: ImportAnalysis['batch']; valid_count: number; invalid_count: number; valid_total: string; unknown_categories: string[]; rows: ImportRow[]; }
+export interface ImportResult { batch: ImportAnalysis['batch']; imported_count: number; invalid_count: number; duplicate_count: number; verification: { source_count: number; database_count: number; source_total: string; database_total: string; difference: string; payment_totals: Record<string, string> }; }
+export async function analyzeWorkbook(file: File): Promise<ImportAnalysis> { const form = new FormData(); form.append('file', file); const { data } = await api.post<ApiResponse<ImportAnalysis>>('/imports/analyze', form); return data.data; }
+export async function previewWorkbook(batchId: number, sheets: Array<{ name: string; header_row: number; mapping: Record<string, string> }>): Promise<ImportPreview> { const { data } = await api.post<ApiResponse<ImportPreview>>(`/imports/${batchId}/preview`, { sheets }); return data.data; }
+export async function commitWorkbook(batchId: number, categoryMap: Record<string, string>): Promise<ImportResult> { const { data } = await api.post<ApiResponse<ImportResult>>(`/imports/${batchId}/commit`, { category_map: categoryMap }); return data.data; }

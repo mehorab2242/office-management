@@ -1,0 +1,2 @@
+<script setup lang="ts">import AppLayout from '../components/layout/AppLayout.vue';</script>
+<template><AppLayout><div class="card mx-auto max-w-lg text-center"><p class="text-sm font-semibold text-brand-700">403</p><h1 class="mt-2 text-2xl font-semibold">Access denied</h1><p class="mt-2 text-slate-500">Your account does not have permission to view this page.</p><RouterLink to="/dashboard" class="mt-5 inline-block text-sm font-semibold text-brand-700">Return to dashboard</RouterLink></div></AppLayout></template>

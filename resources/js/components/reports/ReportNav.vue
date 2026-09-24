@@ -1,0 +1,2 @@
+<template><nav class="flex flex-wrap gap-2" aria-label="Report types"><RouterLink v-for="item in items" :key="item.name" :to="{ name: item.name }" class="rounded-lg border bg-white px-3 py-2 text-sm font-medium text-slate-600 hover:text-brand-700" active-class="border-brand-600 bg-brand-50 text-brand-700">{{ item.label }}</RouterLink></nav></template>
+<script setup lang="ts">const items = [{ name: 'report-monthly', label: 'Monthly' }, { name: 'report-yearly', label: 'Yearly' }, { name: 'report-custom', label: 'Custom' }];</script>

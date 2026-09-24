@@ -33,7 +33,11 @@ class AttachmentController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => ['id' => $attachment->id, 'original_name' => $attachment->original_name],
+            'data' => [
+                'id' => $attachment->id, 'original_name' => $attachment->original_name,
+                'mime_type' => $attachment->mime_type, 'file_size' => $attachment->file_size,
+                'created_at' => $attachment->created_at?->toIso8601String(),
+            ],
         ], 201);
     }
 
