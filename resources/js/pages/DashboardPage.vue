@@ -1,49 +1,40 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
-import { ArrowRight, CircleDollarSign, CircleCheck, Clock3, ReceiptText, TriangleAlert } from '@lucide/vue';
+import { ArrowRight, ArrowUp, Calculator, CircleDollarSign, ReceiptText } from '@lucide/vue';
 import AppLayout from '../components/layout/AppLayout.vue';
+import DatePicker from '../components/ui/DatePicker.vue';
 import LoadingState from '../components/ui/LoadingState.vue';
 import BaseButton from '../components/ui/BaseButton.vue';
-import { getDashboard, getMonthlyReport } from '../services/dashboard';
+import { getDashboard } from '../services/dashboard';
 import { apiErrorMessage } from '../services/api';
 import { formatMoney, formatMonth } from '../utils/formatters';
-import type { DashboardData, MonthlyReport } from '../types';
+import type { DashboardData } from '../types';
 
 const dashboard = ref<DashboardData | null>(null);
-const report = ref<MonthlyReport | null>(null);
 const selectedMonth = ref(new Date().toISOString().slice(0, 7));
 const loading = ref(true);
-const reportLoading = ref(false);
 const error = ref('');
 
 const stats = computed(() => {
-    const data = report.value ?? dashboard.value;
+    const data = dashboard.value?.selected_month_summary ?? dashboard.value;
     if (!data) return [];
     return [
         { label: 'Total expenses', value: formatMoney(data.total_amount), icon: CircleDollarSign, tone: 'text-slate-700 bg-slate-100' },
-        { label: 'Paid', value: formatMoney(data.paid_amount), icon: CircleCheck, tone: 'text-emerald-700 bg-emerald-50' },
-        { label: 'Pending', value: formatMoney(data.pending_amount), icon: Clock3, tone: 'text-amber-700 bg-amber-50' },
-        { label: 'Unpaid', value: formatMoney(data.unpaid_amount), icon: TriangleAlert, tone: 'text-red-700 bg-red-50' },
         { label: 'Transactions', value: String(data.transaction_count), icon: ReceiptText, tone: 'text-brand-700 bg-brand-50' },
+        { label: 'Average expense', value: formatMoney(data.average_amount ?? '0'), icon: Calculator, tone: 'text-violet-700 bg-violet-50' },
+        { label: 'Largest expense', value: formatMoney(data.largest_amount ?? '0'), icon: ArrowUp, tone: 'text-amber-700 bg-amber-50' },
     ];
 });
 
 async function load(): Promise<void> {
     loading.value = true; error.value = '';
     try {
-        dashboard.value = await getDashboard();
-        report.value = await getMonthlyReport(selectedMonth.value);
+        dashboard.value = await getDashboard(selectedMonth.value);
     } catch (caught) { error.value = apiErrorMessage(caught); }
     finally { loading.value = false; }
 }
 
-watch(selectedMonth, async (month, previous) => {
-    if (!previous || month === report.value?.period_month) return;
-    reportLoading.value = true; error.value = '';
-    try { report.value = await getMonthlyReport(month); }
-    catch (caught) { error.value = apiErrorMessage(caught); }
-    finally { reportLoading.value = false; }
-});
+watch(selectedMonth, () => { void load(); });
 
 onMounted(load);
 </script>
@@ -51,18 +42,18 @@ onMounted(load);
     <AppLayout>
         <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div><p class="text-sm font-medium text-brand-700">Overview</p><h1 class="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">Dashboard</h1><p class="mt-1 text-sm text-slate-500">Your expense position for {{ formatMonth(selectedMonth) }}.</p></div>
-            <div class="flex items-center gap-3"><label class="label" for="month">Reporting month</label><input id="month" v-model="selectedMonth" type="month" class="field mt-0 w-auto" /></div>
+            <div class="flex items-center gap-3"><label class="label" for="month">Reporting month</label><DatePicker id="month" v-model="selectedMonth" mode="month" aria-label="Reporting month" /></div>
         </div>
         <LoadingState v-if="loading" label="Loading dashboard…" />
         <div v-else-if="error && !dashboard" class="card mt-6 text-center"><p class="text-red-700">{{ error }}</p><BaseButton class="mt-4" @click="load">Try again</BaseButton></div>
         <template v-else>
             <p v-if="error" class="mt-6 rounded-lg bg-red-50 p-3 text-sm text-red-700">{{ error }}</p>
-            <div class="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5" :class="{ 'opacity-60': reportLoading }">
+            <div class="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 <article v-for="stat in stats" :key="stat.label" class="card"><div class="flex items-start justify-between"><div><p class="text-sm text-slate-500">{{ stat.label }}</p><p class="mt-2 text-2xl font-semibold tracking-tight">{{ stat.value }}</p></div><span class="rounded-lg p-2" :class="stat.tone"><component :is="stat.icon" class="size-5" /></span></div></article>
             </div>
             <div class="mt-6 grid gap-6 xl:grid-cols-[2fr_1fr]">
                 <section class="card"><div class="flex items-center justify-between"><div><h2 class="font-semibold">Spending by category</h2><p class="text-sm text-slate-500">Category totals for the selected month.</p></div></div>
-                    <div v-if="report?.categories.length" class="mt-5 space-y-4"><div v-for="category in report.categories" :key="category.name" class="flex items-center justify-between border-b pb-3 last:border-0"><span class="text-sm font-medium">{{ category.name }}</span><span class="text-sm tabular-nums">{{ formatMoney(category.total) }}</span></div></div>
+                    <div v-if="dashboard?.selected_month_categories?.length" class="mt-5 space-y-4"><div v-for="category in dashboard.selected_month_categories" :key="category.name" class="flex items-center justify-between border-b pb-3 last:border-0"><span class="text-sm font-medium">{{ category.name }}</span><span class="text-sm tabular-nums">{{ formatMoney(category.total) }}</span></div></div>
                     <p v-else class="mt-6 text-sm text-slate-500">No categorized expenses in this month.</p>
                 </section>
                 <section class="card bg-slate-950 text-white"><p class="text-sm text-slate-400">Quick action</p><h2 class="mt-2 text-xl font-semibold">Record a new expense</h2><p class="mt-2 text-sm text-slate-400">Add the receipt details while they are fresh.</p><RouterLink :to="{ name: 'expense-create' }" class="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-brand-100">Add expense <ArrowRight class="size-4" /></RouterLink></section>

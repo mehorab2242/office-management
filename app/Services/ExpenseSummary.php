@@ -12,8 +12,8 @@ class ExpenseSummary
         $base = Expense::query();
         if ($periodMonth !== null) {
             $nextMonth = CarbonImmutable::parse($periodMonth)->addMonth()->toDateString();
-            $base->where('period_month', '>=', $periodMonth)
-                ->where('period_month', '<', $nextMonth);
+            $base->where('expense_date', '>=', $periodMonth)
+                ->where('expense_date', '<', $nextMonth);
         }
 
         $summary = (clone $base)->selectRaw(
@@ -40,8 +40,8 @@ class ExpenseSummary
 
         return Expense::query()
             ->leftJoin('categories', 'categories.id', '=', 'expenses.category_id')
-            ->where('expenses.period_month', '>=', $periodMonth)
-            ->where('expenses.period_month', '<', $nextMonth)
+            ->where('expenses.expense_date', '>=', $periodMonth)
+            ->where('expenses.expense_date', '<', $nextMonth)
             ->selectRaw("COALESCE(categories.name, 'Uncategorized') as name, SUM(expenses.amount) as total")
             ->groupBy('categories.id', 'categories.name')
             ->orderBy('name')

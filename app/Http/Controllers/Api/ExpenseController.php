@@ -18,7 +18,7 @@ class ExpenseController extends Controller
 {
     public function index(IndexExpenseRequest $request, ExpenseQuery $query): JsonResponse
     {
-        $page = $query->paginate($request->validated());
+        $page = $query->paginate($request->validated(), $request->user());
 
         return response()->json([
             'success' => true,

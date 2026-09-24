@@ -34,7 +34,10 @@ class IndexExpenseRequest extends FormRequest
             'year' => ['sometimes', 'integer', 'between:2000,2100'],
             'month' => ['sometimes', 'integer', 'between:1,12'],
             'amount_min' => ['sometimes', 'numeric', 'min:0'],
-            'amount_max' => ['sometimes', 'numeric', 'gte:amount_min'],
+            'amount_max' => array_values(array_filter([
+                'sometimes', 'numeric', 'min:0',
+                $this->filled('amount_min') ? 'gte:amount_min' : null,
+            ])),
             'sort' => ['sometimes', Rule::in(['expense_date', 'amount', 'description', 'created_at'])],
             'direction' => ['sometimes', Rule::in(['asc', 'desc'])],
             'per_page' => ['sometimes', 'integer', 'between:1,100'],

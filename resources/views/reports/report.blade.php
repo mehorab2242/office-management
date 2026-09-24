@@ -8,16 +8,14 @@ body{font-family:'DejaVu Sans',sans-serif;color:#0f172a;font-size:10px}h1{font-s
 <div class="muted">Generated {{ now(config('app.display_timezone'))->format('Y-m-d H:i') }}</div>
 <div class="summary">
     <div class="metric">Total<strong>BDT {{ number_format((float) $summary['total_amount'], 2) }}</strong></div>
-    <div class="metric">Paid<strong>BDT {{ number_format((float) $summary['paid_amount'], 2) }}</strong></div>
-    <div class="metric">Unpaid<strong>BDT {{ number_format((float) $summary['unpaid_amount'], 2) }}</strong></div>
-    <div class="metric">Pending<strong>BDT {{ number_format((float) $summary['pending_amount'], 2) }}</strong></div>
     <div class="metric">Transactions<strong>{{ $summary['transaction_count'] }}</strong></div>
+    <div class="metric">Average<strong>BDT {{ number_format((float) ($summary['average_amount'] ?? 0), 2) }}</strong></div>
 </div>
 <h2>Category summary</h2><table><thead><tr><th>Category</th><th class="right">Total (BDT)</th></tr></thead><tbody>@forelse($categories as $category)<tr><td>{{ $category['name'] }}</td><td class="right">{{ number_format((float) $category['total'], 2) }}</td></tr>@empty<tr><td colspan="2" class="muted">No categories.</td></tr>@endforelse</tbody></table>
 <h2>Expense details</h2>
-<table><thead><tr><th>Date</th><th>Description</th><th>Category</th><th>Status</th><th>Paid by</th><th class="right">Amount (BDT)</th></tr></thead><tbody>
+<table><thead><tr><th>Date</th><th>Description</th><th>Category</th><th>Paid by</th><th class="right">Amount (BDT)</th></tr></thead><tbody>
 @forelse($expenses as $expense)
-<tr><td>{{ $expense->expense_date?->format('Y-m-d') }}</td><td>{{ $expense->description }}</td><td>{{ $expense->category?->name ?? 'Uncategorized' }}</td><td>{{ ucfirst($expense->payment_status ?? 'unspecified') }}</td><td>{{ $expense->payerAllocations->pluck('payer_name')->implode(', ') }}</td><td class="right">{{ number_format((float) $expense->amount, 2) }}</td></tr>
+<tr><td>{{ $expense->expense_date?->format('Y-m-d') }}</td><td>{{ $expense->description }}</td><td>{{ $expense->category?->name ?? 'Uncategorized' }}</td><td>{{ $expense->payerAllocations->pluck('payer_name')->implode(', ') }}</td><td class="right">{{ number_format((float) $expense->amount, 2) }}</td></tr>
 @empty<tr><td colspan="6" class="muted">No expenses match this report.</td></tr>@endforelse
 </tbody></table>
 <div class="footer">Page <span class="page"></span></div>

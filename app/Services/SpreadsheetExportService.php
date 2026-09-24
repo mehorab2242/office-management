@@ -29,10 +29,6 @@ class SpreadsheetExportService
         $summarySheet->fromArray([
             ['Metric', 'Value'],
             ['Total amount (BDT)', (float) $summary['total_amount']],
-            ['Paid (BDT)', (float) $summary['paid_amount']],
-            ['Unpaid (BDT)', (float) $summary['unpaid_amount']],
-            ['Pending (BDT)', (float) $summary['pending_amount']],
-            ['Unspecified (BDT)', (float) $summary['unspecified_amount']],
             ['Transactions', $summary['transaction_count']],
             ['Average (BDT)', (float) ($summary['average_amount'] ?? 0)],
         ]);
@@ -85,24 +81,23 @@ class SpreadsheetExportService
     private function writeExpenses(Worksheet $sheet, Builder $query, string $title): void
     {
         $sheet->setTitle(substr($title, 0, 31));
-        $headers = ['Date', 'Period', 'Description', 'Category', 'Amount (BDT)', 'Status', 'Method', 'Paid by', 'Reference', 'Note', 'Created by'];
+        $headers = ['Date', 'Period', 'Description', 'Category', 'Amount (BDT)', 'Method', 'Paid by', 'Reference', 'Note', 'Created by'];
         $sheet->fromArray($headers);
         $row = 2;
         foreach ((clone $query)->with(['category', 'payerAllocations', 'creator'])->lazy(500) as $expense) {
             $sheet->fromArray([
                 $expense->expense_date ? ExcelDate::PHPToExcel($expense->expense_date) : null,
-                $expense->period_month ? ExcelDate::PHPToExcel($expense->period_month) : null,
+                $expense->expense_date ? $expense->expense_date->format('Y-m') : null,
                 $expense->description,
                 $expense->category?->name ?? 'Uncategorized',
                 (float) $expense->amount,
-                $expense->payment_status ?? 'Unspecified',
                 $expense->payment_method,
                 $expense->payerAllocations->pluck('payer_name')->implode(', '),
                 $expense->reference,
                 $expense->note,
                 $expense->creator?->name,
             ], null, "A{$row}");
-            foreach (['C', 'D', 'F', 'G', 'H', 'I', 'J', 'K'] as $column) {
+            foreach (['C', 'D', 'F', 'G', 'H', 'I', 'J'] as $column) {
                 $sheet->setCellValueExplicit("{$column}{$row}", (string) ($sheet->getCell("{$column}{$row}")->getValue() ?? ''), DataType::TYPE_STRING);
             }
             $row++;

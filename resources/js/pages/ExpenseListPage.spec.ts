@@ -38,7 +38,7 @@ describe('ExpenseListPage', () => {
 
     it('shows deletion to administrators and passes category filters to the API', async () => {
         const auth = useAuthStore();
-        auth.user = { id: 1, name: 'Admin', email: 'admin@example.com', role: 'admin', is_active: true };
+        auth.user = { id: 1, name: 'Super Admin', email: 'admin@example.com', role: 'super_admin', is_active: true };
         const wrapper = mount(ExpenseListPage);
         await flushPromises();
         expect(wrapper.find('[aria-label="Delete expense"]').exists()).toBe(true);
@@ -49,7 +49,7 @@ describe('ExpenseListPage', () => {
 
     it('requires confirmation and refreshes after an administrator deletes an expense', async () => {
         const auth = useAuthStore();
-        auth.user = { id: 1, name: 'Admin', email: 'admin@example.com', role: 'admin', is_active: true };
+        auth.user = { id: 1, name: 'Super Admin', email: 'admin@example.com', role: 'super_admin', is_active: true };
         vi.mocked(expenseService.deleteExpense).mockResolvedValue();
         const wrapper = mount(ExpenseListPage, { attachTo: document.body });
         await flushPromises();

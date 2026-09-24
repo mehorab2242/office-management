@@ -15,7 +15,7 @@ class Expense extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'period_month', 'expense_date', 'category_id', 'description', 'amount',
+        'expense_date', 'category_id', 'description', 'amount',
         'payment_status', 'payment_method', 'reference', 'note', 'created_by', 'updated_by',
         'import_batch_id', 'source_sheet', 'source_row',
     ];
@@ -48,7 +48,6 @@ class Expense extends Model
     protected function casts(): array
     {
         return [
-            'period_month' => 'date',
             'expense_date' => 'date',
             'amount' => 'decimal:2',
         ];

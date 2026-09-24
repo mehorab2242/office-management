@@ -17,6 +17,7 @@ class AttachmentController extends Controller
 {
     public function store(StoreAttachmentRequest $request, Expense $expense, AuditLogger $auditLogger): JsonResponse
     {
+        Gate::authorize('update', $expense);
         $file = $request->file('file');
         $path = $file->store('receipts', 'local');
         $attachment = $expense->attachments()->create([

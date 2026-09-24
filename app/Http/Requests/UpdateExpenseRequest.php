@@ -23,7 +23,6 @@ class UpdateExpenseRequest extends StoreExpenseRequest
     {
         $rules = parent::rules();
         $rules['expense_date'] = ['sometimes', 'nullable', 'date_format:Y-m-d'];
-        $rules['period_month'] = ['sometimes', 'nullable', 'date_format:Y-m-d'];
         $rules['description'] = ['sometimes', 'required', 'string', 'max:255'];
         $rules['amount'] = ['sometimes', 'required', 'numeric', 'gt:0', 'decimal:0,2', 'max:9999999999.99'];
 

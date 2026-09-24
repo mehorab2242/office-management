@@ -33,7 +33,7 @@ class UserController extends Controller
 
     public function store(StoreUserRequest $request, AuditLogger $auditLogger): JsonResponse
     {
-        $user = User::create($request->validated());
+        $user = User::create(['is_active' => true, ...$request->validated(), 'role' => User::ROLE_STAFF]);
         $auditLogger->record($request->user(), 'user.created', $user, null, $user->only(['name', 'email', 'role', 'is_active']));
 
         return response()->json([
@@ -56,10 +56,11 @@ class UserController extends Controller
         if ($request->user()->is($user) && array_key_exists('is_active', $validated) && ! $validated['is_active']) {
             throw ValidationException::withMessages(['is_active' => ['You cannot deactivate your own account.']]);
         }
-        $removesAdministratorAccess = $user->isAdmin()
-            && (($validated['role'] ?? User::ROLE_ADMIN) !== User::ROLE_ADMIN || ($validated['is_active'] ?? true) === false);
-        if ($removesAdministratorAccess && User::query()->where('role', User::ROLE_ADMIN)->where('is_active', true)->count() <= 1) {
-            throw ValidationException::withMessages(['role' => ['At least one active administrator is required.']]);
+        $deactivatesLastSuperAdmin = $user->isSuperAdmin()
+            && ($validated['is_active'] ?? true) === false
+            && User::query()->where('role', User::ROLE_SUPER_ADMIN)->where('is_active', true)->count() <= 1;
+        if ($deactivatesLastSuperAdmin) {
+            throw ValidationException::withMessages(['is_active' => ['At least one active super administrator is required.']]);
         }
         $before = $user->only(['name', 'email', 'role', 'is_active']);
         $user->update($validated);

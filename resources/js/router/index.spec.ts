@@ -20,4 +20,18 @@ describe('route protection', () => {
         await router.push('/categories');
         expect(router.currentRoute.value.name).toBe('forbidden');
     });
+
+    it('rejects staff access to staff management while allowing super admins', async () => {
+        const staff = useAuthStore();
+        staff.user = { id: 2, name: 'Staff', email: 'staff@example.com', role: 'staff', is_active: true };
+        const staffRouter = createAppRouter();
+        await staffRouter.push('/users');
+        expect(staffRouter.currentRoute.value.name).toBe('forbidden');
+
+        const superAdmin = useAuthStore();
+        superAdmin.user = { id: 1, name: 'Super Admin', email: 'admin@example.com', role: 'super_admin', is_active: true };
+        const adminRouter = createAppRouter();
+        await adminRouter.push('/users');
+        expect(adminRouter.currentRoute.value.name).toBe('users');
+    });
 });

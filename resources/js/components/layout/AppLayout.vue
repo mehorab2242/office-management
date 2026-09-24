@@ -13,7 +13,7 @@ const mobileOpen = ref(false);
 const links = [
     { name: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { name: 'expenses', label: 'Expenses', icon: ReceiptText },
-    { name: 'report-monthly', label: 'Reports', icon: ChartNoAxesColumn },
+    { name: 'report-monthly', label: 'Reports', icon: ChartNoAxesColumn, adminOnly: true },
 ];
 
 async function handleLogout(): Promise<void> {
@@ -31,15 +31,15 @@ async function handleLogout(): Promise<void> {
                 <button class="rounded p-1 text-slate-300 lg:hidden" aria-label="Close navigation" @click="mobileOpen = false"><X class="size-5" /></button>
             </div>
             <nav class="flex-1 space-y-1 p-3" aria-label="Main navigation">
-                <RouterLink v-for="link in links" :key="link.name" :to="{ name: link.name }" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-300 hover:bg-white/10 hover:text-white" active-class="bg-brand-600 text-white" @click="mobileOpen = false">
+                <RouterLink v-for="link in links.filter((item) => !item.adminOnly || auth.isSuperAdmin)" :key="link.name" :to="{ name: link.name }" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-300 hover:bg-white/10 hover:text-white" active-class="bg-brand-600 text-white" @click="mobileOpen = false">
                     <component :is="link.icon" class="size-5" />{{ link.label }}
                 </RouterLink>
-                <RouterLink v-if="auth.isAdmin" :to="{ name: 'categories' }" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-300 hover:bg-white/10 hover:text-white" active-class="bg-brand-600 text-white" @click="mobileOpen = false">
+                <RouterLink :to="{ name: 'categories' }" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-300 hover:bg-white/10 hover:text-white" active-class="bg-brand-600 text-white" @click="mobileOpen = false">
                     <Tags class="size-5" />Categories
                 </RouterLink>
-                <template v-if="auth.isAdmin">
+                <template v-if="auth.isSuperAdmin">
                     <RouterLink :to="{ name: 'imports' }" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-300 hover:bg-white/10 hover:text-white" active-class="bg-brand-600 text-white" @click="mobileOpen = false"><FileUp class="size-5" />Import</RouterLink>
-                    <RouterLink :to="{ name: 'users' }" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-300 hover:bg-white/10 hover:text-white" active-class="bg-brand-600 text-white" @click="mobileOpen = false"><Users class="size-5" />Users</RouterLink>
+                    <RouterLink :to="{ name: 'users' }" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-300 hover:bg-white/10 hover:text-white" active-class="bg-brand-600 text-white" @click="mobileOpen = false"><Users class="size-5" />Staff Management</RouterLink>
                     <RouterLink :to="{ name: 'audit-logs' }" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-300 hover:bg-white/10 hover:text-white" active-class="bg-brand-600 text-white" @click="mobileOpen = false"><History class="size-5" />Audit log</RouterLink>
                 </template>
             </nav>
@@ -52,7 +52,7 @@ async function handleLogout(): Promise<void> {
         <div class="min-w-0">
             <header class="sticky top-0 z-20 flex h-16 items-center justify-between border-b bg-white/95 px-4 backdrop-blur lg:px-8">
                 <button class="rounded-lg border p-2 lg:hidden" aria-label="Open navigation" @click="mobileOpen = true"><Menu class="size-5" /></button>
-                <div class="ml-auto flex items-center gap-3"><span class="rounded-full bg-brand-50 px-3 py-1 text-xs font-medium capitalize text-brand-700">{{ auth.user?.role }}</span></div>
+                <div class="ml-auto flex items-center gap-3"><span class="rounded-full bg-brand-50 px-3 py-1 text-xs font-medium capitalize text-brand-700">{{ auth.user?.role.replace('_', ' ') }}</span></div>
             </header>
             <main class="p-4 sm:p-6 lg:p-8"><slot /></main>
         </div>

@@ -3,19 +3,23 @@
 namespace App\Services;
 
 use App\Models\Expense;
+use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 
 class ExpenseQuery
 {
-    public function paginate(array $filters): LengthAwarePaginator
+    public function paginate(array $filters, User $user): LengthAwarePaginator
     {
-        return $this->build($filters)->paginate($filters['per_page'] ?? 20);
+        return $this->build($filters, $user)->paginate($filters['per_page'] ?? 20);
     }
 
-    public function build(array $filters): Builder
+    public function build(array $filters, User $user): Builder
     {
         $query = Expense::query()->with(['category', 'creator', 'payerAllocations', 'attachments']);
+        if (! $user->isSuperAdmin()) {
+            $query->where('expenses.created_by', $user->id);
+        }
 
         if ($search = $filters['search'] ?? null) {
             $query->where('expenses.description', 'like', '%'.$search.'%');
@@ -31,10 +35,10 @@ class ExpenseQuery
                 : $query->where('expenses.payment_status', $filters['payment_status']);
         }
         if (isset($filters['year'])) {
-            $query->whereYear('expenses.period_month', $filters['year']);
+            $query->whereYear('expenses.expense_date', $filters['year']);
         }
         if (isset($filters['month'])) {
-            $query->whereMonth('expenses.period_month', $filters['month']);
+            $query->whereMonth('expenses.expense_date', $filters['month']);
         }
         if (isset($filters['date_from'])) {
             $query->whereDate('expenses.expense_date', '>=', $filters['date_from']);

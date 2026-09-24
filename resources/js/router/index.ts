@@ -25,14 +25,14 @@ export function createAppRouter(): Router {
             { path: '/expenses', name: 'expenses', component: ExpenseListPage, meta: { auth: true } },
             { path: '/expenses/create', name: 'expense-create', component: ExpenseFormPage, meta: { auth: true } },
             { path: '/expenses/:id/edit', name: 'expense-edit', component: ExpenseFormPage, meta: { auth: true } },
-            { path: '/categories', name: 'categories', component: CategoryListPage, meta: { auth: true, admin: true } },
+            { path: '/categories', name: 'categories', component: CategoryListPage, meta: { auth: true } },
             { path: '/reports', redirect: { name: 'report-monthly' } },
-            { path: '/reports/monthly', name: 'report-monthly', component: MonthlyReportPage, meta: { auth: true } },
-            { path: '/reports/yearly', name: 'report-yearly', component: YearlyReportPage, meta: { auth: true } },
-            { path: '/reports/custom', name: 'report-custom', component: CustomReportPage, meta: { auth: true } },
-            { path: '/imports', name: 'imports', component: ImportPage, meta: { auth: true, admin: true } },
-            { path: '/users', name: 'users', component: UserListPage, meta: { auth: true, admin: true } },
-            { path: '/audit-logs', name: 'audit-logs', component: AuditLogPage, meta: { auth: true, admin: true } },
+            { path: '/reports/monthly', name: 'report-monthly', component: MonthlyReportPage, meta: { auth: true, superAdmin: true } },
+            { path: '/reports/yearly', name: 'report-yearly', component: YearlyReportPage, meta: { auth: true, superAdmin: true } },
+            { path: '/reports/custom', name: 'report-custom', component: CustomReportPage, meta: { auth: true, superAdmin: true } },
+            { path: '/imports', name: 'imports', component: ImportPage, meta: { auth: true, superAdmin: true } },
+            { path: '/users', name: 'users', component: UserListPage, meta: { auth: true, superAdmin: true } },
+            { path: '/audit-logs', name: 'audit-logs', component: AuditLogPage, meta: { auth: true, superAdmin: true } },
             { path: '/forbidden', name: 'forbidden', component: ForbiddenPage, meta: { auth: true } },
             { path: '/server-error', name: 'server-error', component: ServerErrorPage },
             { path: '/:pathMatch(.*)*', name: 'not-found', component: NotFoundPage },
@@ -42,7 +42,7 @@ export function createAppRouter(): Router {
     router.beforeEach((to) => {
         const auth = useAuthStore();
         if (to.meta.auth && !auth.isAuthenticated) return { name: 'login', query: { redirect: to.fullPath } };
-        if (to.meta.admin && !auth.isAdmin) return { name: 'forbidden' };
+        if (to.meta.superAdmin && !auth.isSuperAdmin) return { name: 'forbidden' };
         if (to.meta.guest && auth.isAuthenticated) return { name: 'dashboard' };
         return true;
     });

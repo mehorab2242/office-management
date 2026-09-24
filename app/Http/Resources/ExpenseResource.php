@@ -16,7 +16,6 @@ class ExpenseResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'period_month' => $this->period_month?->toDateString(),
             'expense_date' => $this->expense_date?->toDateString(),
             'description' => $this->description,
             'amount' => $this->amount,

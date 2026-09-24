@@ -114,7 +114,7 @@ class WorkbookImportService
         $categoryMap = $config['category_map'] ?? [];
         $created = DB::transaction(function () use ($batch, $categoryMap, $actor, $audit): int {
             $created = 0;
-            $batch->rows()->where('status', 'valid')->orderBy('id')->chunkById(500, function ($rows) use ($categoryMap, $actor, &$created): void {
+            $batch->rows()->where('status', 'valid')->orderBy('id')->chunkById(500, function ($rows) use ($batch, $categoryMap, $actor, &$created): void {
                 foreach ($rows as $row) {
                     $values = $row->raw_values;
                     if ($this->isDuplicate($values)) {
@@ -129,7 +129,6 @@ class WorkbookImportService
                     }
                     $categoryId = $this->resolveCategory($values['category'] ?? null, $categoryMap);
                     $expense = Expense::create([
-                        'period_month' => substr($values['expense_date'], 0, 7).'-01',
                         'expense_date' => $values['expense_date'], 'description' => $values['description'],
                         'amount' => $values['amount'], 'category_id' => $categoryId,
                         'payment_status' => $this->paymentStatus($values['payment_status'] ?? null),

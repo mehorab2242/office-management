@@ -45,9 +45,9 @@ class UserFactory extends Factory
         ]);
     }
 
-    public function admin(): static
+    public function superAdmin(): static
     {
-        return $this->state(fn (): array => ['role' => User::ROLE_ADMIN]);
+        return $this->state(fn (): array => ['role' => User::ROLE_SUPER_ADMIN]);
     }
 
     public function staff(): static

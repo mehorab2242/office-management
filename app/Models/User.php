@@ -18,13 +18,13 @@ class User extends Authenticatable
     /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, Notifiable;
 
-    public const ROLE_ADMIN = 'admin';
+    public const ROLE_SUPER_ADMIN = 'super_admin';
 
     public const ROLE_STAFF = 'staff';
 
-    public function isAdmin(): bool
+    public function isSuperAdmin(): bool
     {
-        return $this->role === self::ROLE_ADMIN;
+        return $this->role === self::ROLE_SUPER_ADMIN;
     }
 
     /**

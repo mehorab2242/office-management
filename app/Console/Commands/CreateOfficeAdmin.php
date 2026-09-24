@@ -8,7 +8,7 @@ use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 
 #[Signature('office:create-admin')]
-#[Description('Create an office administrator with a securely prompted password')]
+#[Description('Create an office super administrator with a securely prompted password')]
 class CreateOfficeAdmin extends Command
 {
     public function handle(): int
@@ -33,10 +33,10 @@ class CreateOfficeAdmin extends Command
             'name' => $name,
             'email' => $email,
             'password' => $password,
-            'role' => User::ROLE_ADMIN,
+            'role' => User::ROLE_SUPER_ADMIN,
             'is_active' => true,
         ]);
-        $this->info('Administrator created.');
+        $this->info('Super administrator created.');
 
         return self::SUCCESS;
     }

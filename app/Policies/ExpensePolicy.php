@@ -20,7 +20,7 @@ class ExpensePolicy
      */
     public function view(User $user, Expense $expense): bool
     {
-        return $user->is_active;
+        return $user->is_active && ($user->isSuperAdmin() || $expense->created_by === $user->id);
     }
 
     /**
@@ -36,7 +36,7 @@ class ExpensePolicy
      */
     public function update(User $user, Expense $expense): bool
     {
-        return $user->is_active && ($user->isAdmin() || $expense->created_by === $user->id);
+        return $user->is_active && ($user->isSuperAdmin() || $expense->created_by === $user->id);
     }
 
     /**
@@ -44,7 +44,7 @@ class ExpensePolicy
      */
     public function delete(User $user, Expense $expense): bool
     {
-        return $user->is_active && $user->isAdmin();
+        return $user->is_active && $user->isSuperAdmin();
     }
 
     /**

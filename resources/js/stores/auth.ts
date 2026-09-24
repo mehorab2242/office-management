@@ -9,7 +9,7 @@ export const useAuthStore = defineStore('auth', () => {
     const initialized = ref(false);
     const isLoading = ref(false);
     const isAuthenticated = computed(() => user.value !== null);
-    const isAdmin = computed(() => user.value?.role === 'admin');
+    const isSuperAdmin = computed(() => user.value?.role === 'super_admin');
 
     function clearSession(): void {
         sessionStorage.removeItem(tokenKey);
@@ -58,7 +58,7 @@ export const useAuthStore = defineStore('auth', () => {
     async function fetchUser(): Promise<void> { user.value = await authService.fetchCurrentUser(); }
 
     return {
-        user, initialized, isLoading, isAuthenticated, isAdmin, initialize,
+        user, initialized, isLoading, isAuthenticated, isSuperAdmin, initialize,
         signIn, signOut, login: signIn, logout: signOut, fetchUser, clearSession,
     };
 });

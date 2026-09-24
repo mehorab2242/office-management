@@ -21,9 +21,9 @@ class DatabaseSeeder extends Seeder
             return;
         }
 
-        $admin = User::updateOrCreate(
+        $superAdmin = User::updateOrCreate(
             ['email' => 'admin@example.test'],
-            ['name' => 'Office Admin', 'password' => 'OfficeDemo123!', 'role' => User::ROLE_ADMIN, 'is_active' => true],
+            ['name' => 'Office Admin', 'password' => 'OfficeDemo123!', 'role' => User::ROLE_SUPER_ADMIN, 'is_active' => true],
         );
         User::updateOrCreate(
             ['email' => 'staff@example.test'],
@@ -39,16 +39,15 @@ class DatabaseSeeder extends Seeder
             ['2026-09-08', 'Sample stationery purchase', '480.00', 'unpaid', 'Office Supplies'],
             ['2026-09-12', 'Sample office snacks', '260.00', 'pending', 'Pantry'],
         ] as [$date, $description, $amount, $status, $categoryName]) {
-            if (! Expense::query()->whereDate('period_month', '2026-09-01')->where('description', $description)->exists()) {
+            if (! Expense::query()->whereDate('expense_date', $date)->where('description', $description)->exists()) {
                 Expense::create([
-                    'period_month' => '2026-09-01',
                     'description' => $description,
                     'expense_date' => $date,
                     'amount' => $amount,
                     'payment_status' => $status,
                     'category_id' => Category::where('name', $categoryName)->value('id'),
-                    'created_by' => $admin->id,
-                    'updated_by' => $admin->id,
+                    'created_by' => $superAdmin->id,
+                    'updated_by' => $superAdmin->id,
                 ]);
             }
         }

@@ -16,7 +16,7 @@ class DevelopmentSeederTest extends TestCase
         $this->seed(DatabaseSeeder::class);
         $this->seed(DatabaseSeeder::class);
 
-        $this->assertDatabaseHas('users', ['email' => 'admin@example.test', 'role' => User::ROLE_ADMIN]);
+        $this->assertDatabaseHas('users', ['email' => 'admin@example.test', 'role' => User::ROLE_SUPER_ADMIN]);
         $this->assertDatabaseHas('users', ['email' => 'staff@example.test', 'role' => User::ROLE_STAFF]);
         $this->assertDatabaseCount('categories', 4);
         $this->assertDatabaseCount('expenses', 3);

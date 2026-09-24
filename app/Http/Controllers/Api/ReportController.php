@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\IndexExpenseRequest;
 use App\Http\Resources\ExpenseResource;
 use App\Models\Expense;
+use App\Models\User;
 use App\Services\ExpenseQuery;
 use App\Services\ReportService;
 use Illuminate\Http\JsonResponse;
@@ -16,9 +17,9 @@ class ReportController extends Controller
 {
     public function yearly(Request $request, ReportService $reports): JsonResponse
     {
-        Gate::authorize('viewAny', Expense::class);
+        Gate::authorize('viewAny', User::class);
         $validated = $request->validate(['year' => ['required', 'integer', 'between:2000,2100']]);
-        $query = Expense::query()->whereYear('period_month', $validated['year']);
+        $query = Expense::query()->whereYear('expense_date', $validated['year']);
 
         $summary = $reports->summary($query);
 
@@ -31,7 +32,8 @@ class ReportController extends Controller
 
     public function custom(IndexExpenseRequest $request, ExpenseQuery $expenses, ReportService $reports): JsonResponse
     {
-        $query = $expenses->build($request->safe()->except(['page', 'per_page']));
+        Gate::authorize('viewAny', User::class);
+        $query = $expenses->build($request->safe()->except(['page', 'per_page']), $request->user());
         $page = (clone $query)->paginate($request->integer('per_page', 20));
 
         return response()->json(['success' => true, 'data' => [

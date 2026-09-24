@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\IndexExpenseRequest;
 use App\Models\Expense;
+use App\Models\User;
 use App\Services\ExpenseQuery;
 use App\Services\PdfReportService;
 use App\Services\ReportService;
@@ -20,13 +21,14 @@ class ExportController extends Controller
 {
     public function expenses(IndexExpenseRequest $request, ExpenseQuery $expenses, SpreadsheetExportService $exports): StreamedResponse
     {
-        $query = $expenses->build($request->safe()->except(['page', 'per_page']));
+        $query = $expenses->build($request->safe()->except(['page', 'per_page']), $request->user());
 
         return $this->xlsx($exports, $exports->expenses($query), 'expenses.xlsx');
     }
 
     public function monthly(Request $request, ReportService $reports, SpreadsheetExportService $exports): StreamedResponse
     {
+        Gate::authorize('viewAny', User::class);
         [$query, $label] = $this->periodQuery($request);
 
         return $this->xlsx($exports, $exports->report($query, $reports->summary($query), $reports->categories($query), $label), 'monthly-report.xlsx');
@@ -34,22 +36,24 @@ class ExportController extends Controller
 
     public function yearly(Request $request, ReportService $reports, SpreadsheetExportService $exports): StreamedResponse
     {
-        Gate::authorize('viewAny', Expense::class);
+        Gate::authorize('viewAny', User::class);
         $data = $request->validate(['year' => ['required', 'integer', 'between:2000,2100']]);
-        $query = Expense::query()->whereYear('period_month', $data['year']);
+        $query = Expense::query()->whereYear('expense_date', $data['year']);
 
         return $this->xlsx($exports, $exports->report($query, $reports->summary($query), $reports->categories($query), "Year {$data['year']}", $reports->months((int) $data['year'])), 'yearly-report.xlsx');
     }
 
     public function custom(IndexExpenseRequest $request, ExpenseQuery $expenses, ReportService $reports, SpreadsheetExportService $exports): StreamedResponse
     {
-        $query = $expenses->build($request->safe()->except(['page', 'per_page']));
+        Gate::authorize('viewAny', User::class);
+        $query = $expenses->build($request->safe()->except(['page', 'per_page']), $request->user());
 
         return $this->xlsx($exports, $exports->report($query, $reports->summary($query), $reports->categories($query), 'Custom report'), 'custom-report.xlsx');
     }
 
     public function monthlyPdf(Request $request, ReportService $reports, PdfReportService $pdf): Response
     {
+        Gate::authorize('viewAny', User::class);
         [$query, $label] = $this->periodQuery($request);
 
         return $this->pdf($pdf, $query, $reports, $label, 'monthly-report.pdf');
@@ -57,15 +61,17 @@ class ExportController extends Controller
 
     public function customPdf(IndexExpenseRequest $request, ExpenseQuery $expenses, ReportService $reports, PdfReportService $pdf): Response
     {
-        return $this->pdf($pdf, $expenses->build($request->safe()->except(['page', 'per_page'])), $reports, 'Custom expense report', 'custom-report.pdf');
+        Gate::authorize('viewAny', User::class);
+
+        return $this->pdf($pdf, $expenses->build($request->safe()->except(['page', 'per_page']), $request->user()), $reports, 'Custom expense report', 'custom-report.pdf');
     }
 
     /** @return array{0: Builder<Expense>, 1: string} */
     private function periodQuery(Request $request): array
     {
-        Gate::authorize('viewAny', Expense::class);
+        Gate::authorize('viewAny', User::class);
         $data = $request->validate(['year' => ['required', 'integer', 'between:2000,2100'], 'month' => ['required', 'integer', 'between:1,12']]);
-        $query = Expense::query()->whereYear('period_month', $data['year'])->whereMonth('period_month', $data['month']);
+        $query = Expense::query()->whereYear('expense_date', $data['year'])->whereMonth('expense_date', $data['month']);
 
         return [$query, date('F Y', mktime(0, 0, 0, (int) $data['month'], 1, (int) $data['year']))];
     }

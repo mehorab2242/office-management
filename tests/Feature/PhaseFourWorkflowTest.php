@@ -35,7 +35,7 @@ class PhaseFourWorkflowTest extends TestCase
             ->assertOk()->assertHeader('content-type', 'application/pdf');
     }
 
-    public function test_admin_can_preview_and_commit_a_workbook_with_reconciliation(): void
+    public function test_super_admin_can_preview_and_commit_a_workbook_with_reconciliation(): void
     {
         Storage::fake('local');
         $path = tempnam(sys_get_temp_dir(), 'import').'.xlsx';
@@ -49,9 +49,9 @@ class PhaseFourWorkflowTest extends TestCase
             ['2026-09-03', null, null, 'Mehorab'],
         ]);
         (new Xlsx($workbook))->save($path);
-        $admin = User::factory()->admin()->create();
+        $superAdmin = User::factory()->superAdmin()->create();
 
-        $analysis = $this->actingAs($admin)->post('/api/imports/analyze', [
+        $analysis = $this->actingAs($superAdmin)->post('/api/imports/analyze', [
             'file' => new UploadedFile($path, 'office-costs.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', null, true),
         ])->assertCreated()->json('data');
         $preview = $this->postJson("/api/imports/{$analysis['batch']['id']}/preview", [

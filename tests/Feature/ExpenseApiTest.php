@@ -34,7 +34,7 @@ class ExpenseApiTest extends TestCase
 
     public function test_undated_expense_requires_a_period_and_preserves_null_date(): void
     {
-        $this->actingAs(User::factory()->admin()->create())->postJson('/api/expenses', [
+        $this->actingAs(User::factory()->superAdmin()->create())->postJson('/api/expenses', [
             'period_month' => '2026-04-01',
             'description' => 'UPS',
             'amount' => '2000.00',
@@ -45,7 +45,7 @@ class ExpenseApiTest extends TestCase
 
     public function test_invalid_amount_and_mismatched_payer_total_are_rejected(): void
     {
-        $this->actingAs(User::factory()->admin()->create())->postJson('/api/expenses', [
+        $this->actingAs(User::factory()->superAdmin()->create())->postJson('/api/expenses', [
             'expense_date' => '2026-09-17',
             'description' => 'Internet',
             'amount' => '-10.00',
@@ -59,7 +59,7 @@ class ExpenseApiTest extends TestCase
         ])->assertUnprocessable()->assertJsonValidationErrors('payer_allocations');
     }
 
-    public function test_staff_can_update_own_expense_but_not_anothers_and_only_admin_can_delete(): void
+    public function test_staff_can_update_own_expense_but_not_anothers_and_only_super_admin_can_delete(): void
     {
         $owner = User::factory()->staff()->create();
         $other = User::factory()->staff()->create();
@@ -73,7 +73,7 @@ class ExpenseApiTest extends TestCase
         ])->assertOk()->assertJsonPath('data.description', 'Updated cost');
 
         $this->deleteJson("/api/expenses/{$expense->id}")->assertForbidden();
-        $this->actingAs(User::factory()->admin()->create())->deleteJson("/api/expenses/{$expense->id}")
+        $this->actingAs(User::factory()->superAdmin()->create())->deleteJson("/api/expenses/{$expense->id}")
             ->assertOk();
         $this->assertSoftDeleted('expenses', ['id' => $expense->id]);
     }
@@ -101,7 +101,7 @@ class ExpenseApiTest extends TestCase
 
     public function test_update_cannot_make_existing_payer_allocations_disagree_with_amount(): void
     {
-        $user = User::factory()->admin()->create();
+        $user = User::factory()->superAdmin()->create();
         $expense = Expense::factory()->create(['amount' => '100.00']);
         $expense->payerAllocations()->create(['payer_name' => 'Cashier', 'amount' => '100.00']);
 
@@ -115,14 +115,14 @@ class ExpenseApiTest extends TestCase
             'expense_date' => '2026-09-15', 'period_month' => '2026-09-01',
         ]);
 
-        $this->actingAs(User::factory()->admin()->create())
+        $this->actingAs(User::factory()->superAdmin()->create())
             ->putJson("/api/expenses/{$expense->id}", ['period_month' => '2026-08-01'])
             ->assertUnprocessable()->assertJsonValidationErrors('period_month');
     }
 
     public function test_expense_write_actions_create_audit_records(): void
     {
-        $admin = User::factory()->admin()->create();
+        $admin = User::factory()->superAdmin()->create();
         $expense = Expense::factory()->create(['created_by' => $admin->id]);
         $this->actingAs($admin)->putJson("/api/expenses/{$expense->id}", ['amount' => '125.00'])->assertOk();
         $this->deleteJson("/api/expenses/{$expense->id}")->assertOk();

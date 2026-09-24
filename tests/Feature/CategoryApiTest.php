@@ -12,10 +12,10 @@ class CategoryApiTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_admin_can_manage_categories_and_deletion_deactivates_used_category(): void
+    public function test_super_admin_can_manage_categories_and_deletion_deactivates_used_category(): void
     {
-        $admin = User::factory()->admin()->create();
-        $this->actingAs($admin);
+        $superAdmin = User::factory()->superAdmin()->create();
+        $this->actingAs($superAdmin);
 
         $id = $this->postJson('/api/categories', ['name' => 'Utilities'])
             ->assertCreated()->assertJsonPath('data.name', 'Utilities')->json('data.id');
@@ -45,7 +45,7 @@ class CategoryApiTest extends TestCase
     {
         Category::factory()->create(['name' => 'Utilities']);
 
-        $this->actingAs(User::factory()->admin()->create())
+        $this->actingAs(User::factory()->superAdmin()->create())
             ->postJson('/api/categories', ['name' => 'Utilities'])
             ->assertUnprocessable()->assertJsonValidationErrors('name');
     }

@@ -1,4 +1,4 @@
-export type UserRole = 'admin' | 'staff';
+export type UserRole = 'super_admin' | 'staff';
 
 export interface User {
     id: number;
@@ -6,6 +6,7 @@ export interface User {
     email: string;
     role: UserRole;
     is_active: boolean;
+    created_at?: string;
 }
 
 export interface Category {
@@ -26,7 +27,6 @@ export interface PayerAllocation {
 
 export interface Expense {
     id: number;
-    period_month: string;
     expense_date: string | null;
     description: string;
     amount: string;
@@ -45,12 +45,10 @@ export interface Expense {
 export interface Attachment { id: number; original_name: string; mime_type: string; file_size: number; created_at: string; }
 
 export interface ExpensePayload {
-    period_month: string;
     expense_date: string;
     description: string;
     amount: number;
     category_id: number | null;
-    payment_status: PaymentStatus | null;
     payment_method: string | null;
     reference: string | null;
     note: string | null;
@@ -75,20 +73,27 @@ export interface PaginatedResponse<T> extends ApiResponse<T[]> {
 
 export interface ExpenseSummary {
     total_amount: string;
-    paid_amount: string;
-    unpaid_amount: string;
-    pending_amount: string;
-    unspecified_amount: string;
     transaction_count: number;
     average_amount?: string;
+    largest_amount?: string;
 }
 
-export interface DashboardData extends ExpenseSummary {
-    current_month: ExpenseSummary;
-    today?: ExpenseSummary;
-    current_year?: ExpenseSummary;
+export interface DashboardSummary {
+    total_amount: string;
+    transaction_count: number;
+    average_amount: string;
+    largest_amount: string;
+}
+
+export interface DashboardData extends DashboardSummary {
+    current_month: DashboardSummary;
+    today?: DashboardSummary;
+    current_year?: DashboardSummary;
     monthly_trend?: MonthTotal[];
     current_month_categories?: MonthlyCategoryTotal[];
+    selected_month?: string;
+    selected_month_summary?: DashboardSummary;
+    selected_month_categories?: MonthlyCategoryTotal[];
     recent_expenses?: Expense[];
 }
 

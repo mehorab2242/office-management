@@ -10,12 +10,12 @@ class AuditApiTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_admin_can_read_paginated_audit_log_without_password_values(): void
+    public function test_super_admin_can_read_paginated_audit_log_without_password_values(): void
     {
-        $admin = User::factory()->admin()->create();
-        $this->actingAs($admin)->postJson('/api/users', [
+        $superAdmin = User::factory()->superAdmin()->create();
+        $this->actingAs($superAdmin)->postJson('/api/users', [
             'name' => 'Office Staff', 'email' => 'new@example.test',
-            'password' => 'long-password-123', 'role' => 'staff',
+            'password' => 'long-password-123', 'password_confirmation' => 'long-password-123', 'role' => 'staff',
         ])->assertCreated();
 
         $response = $this->getJson('/api/audit-logs')->assertOk()

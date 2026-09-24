@@ -27,8 +27,7 @@ class StoreExpenseRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'expense_date' => ['nullable', 'date_format:Y-m-d', 'required_without:period_month'],
-            'period_month' => ['nullable', 'date_format:Y-m-d', 'required_without:expense_date'],
+            'expense_date' => ['required', 'date_format:Y-m-d'],
             'description' => ['required', 'string', 'max:255'],
             'amount' => ['required', 'numeric', 'gt:0', 'decimal:0,2', 'max:9999999999.99'],
             'category_id' => ['nullable', 'integer', Rule::exists('categories', 'id')->where('is_active', true)],
@@ -50,13 +49,6 @@ class StoreExpenseRequest extends FormRequest
             }
 
             $expense = $this->route('expense');
-            $period = $this->input('period_month');
-            $date = $this->exists('expense_date')
-                ? $this->input('expense_date')
-                : $expense?->expense_date?->toDateString();
-            if ($period && (substr($period, 8, 2) !== '01' || ($date && substr($date, 0, 7) !== substr($period, 0, 7)))) {
-                $validator->errors()->add('period_month', 'The period must be the first day of the expense month.');
-            }
 
             $allocations = $this->exists('payer_allocations')
                 ? $this->input('payer_allocations', [])

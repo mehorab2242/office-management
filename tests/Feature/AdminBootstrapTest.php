@@ -19,7 +19,7 @@ class AdminBootstrapTest extends TestCase
             ->expectsQuestion('Confirm password', 'StrongTest123!')
             ->assertSuccessful();
 
-        $this->assertDatabaseHas('users', ['email' => 'owner@example.test', 'role' => 'admin', 'is_active' => true]);
+        $this->assertDatabaseHas('users', ['email' => 'owner@example.test', 'role' => 'super_admin', 'is_active' => true]);
         $this->assertTrue(Hash::check('StrongTest123!', $this->app['db']->table('users')->where('email', 'owner@example.test')->value('password')));
     }
 }
