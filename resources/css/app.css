@@ -26,3 +26,21 @@
     .label { @apply text-sm font-medium text-slate-700; }
     .error-text { @apply mt-1 text-sm text-red-600; }
 }
+
+@media (max-width: 639px) {
+    .flatpickr-calendar.static {
+        width: min(307.875px, calc(100vw - 2rem));
+    }
+
+    .flatpickr-calendar.static .flatpickr-days,
+    .flatpickr-calendar.static .dayContainer {
+        width: 100%;
+        min-width: 0;
+        max-width: none;
+    }
+
+    .flatpickr-calendar.static .flatpickr-day {
+        flex-basis: calc(100% / 7);
+        max-width: none;
+    }
+}

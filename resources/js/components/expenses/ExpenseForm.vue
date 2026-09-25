@@ -2,6 +2,7 @@
 import { computed, reactive, ref, watch } from 'vue';
 import BaseButton from '../ui/BaseButton.vue';
 import DatePicker from '../ui/DatePicker.vue';
+import { PAYMENT_METHOD_OPTIONS } from '../../types';
 import type { Category, Expense, ExpensePayload, ValidationErrors } from '../../types';
 
 const props = withDefaults(defineProps<{
@@ -20,6 +21,9 @@ const form = reactive({
     expense_date: todayDate, description: '', amount: '', category_id: '',
     payment_method: '', reference: '', note: '',
 });
+const paymentMethodOptions = computed<string[]>(() => form.payment_method && !PAYMENT_METHOD_OPTIONS.some((option) => option === form.payment_method)
+    ? [form.payment_method, ...PAYMENT_METHOD_OPTIONS]
+    : [...PAYMENT_METHOD_OPTIONS]);
 
 watch(() => props.expense, (expense) => {
     if (!expense) {
@@ -75,7 +79,7 @@ function errorFor(field: string): string | undefined { return errors.value[field
         <div><label class="label" for="description">Description *</label><input id="description" v-model="form.description" class="field" maxlength="255" placeholder="What was purchased?" /><p v-if="errorFor('description')" class="error-text">{{ errorFor('description') }}</p></div>
         <div class="grid gap-5 sm:grid-cols-2">
             <div><label class="label" for="amount">Amount (BDT) *</label><input id="amount" v-model="form.amount" class="field" type="number" min="0.01" max="9999999999.99" step="0.01" placeholder="0.00" /><p v-if="errorFor('amount')" class="error-text">{{ errorFor('amount') }}</p></div>
-            <div><label class="label" for="method">Payment method</label><input id="method" v-model="form.payment_method" class="field" maxlength="100" placeholder="Cash, card, bank transfer…" /></div>
+            <div><label class="label" for="method">Payment method</label><select id="method" v-model="form.payment_method" class="field"><option value="">Select a payment method</option><option v-for="method in paymentMethodOptions" :key="method" :value="method">{{ method }}</option></select></div>
         </div>
         <div><label class="label" for="reference">Reference</label><input id="reference" v-model="form.reference" class="field" maxlength="255" placeholder="Invoice or transaction reference" /></div>
         <div><label class="label" for="note">Notes</label><textarea id="note" v-model="form.note" class="field min-h-28 resize-y" maxlength="5000" placeholder="Optional context" /></div>

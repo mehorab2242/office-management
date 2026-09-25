@@ -18,8 +18,11 @@ let picker: ReturnType<typeof flatpickr> | null = null;
 onMounted(() => {
     if (!input.value) return;
 
+    const isInsideDialog = input.value.closest('[role="dialog"]') !== null;
+
     picker = flatpickr(input.value, {
         allowInput: true,
+        static: isInsideDialog,
         dateFormat: props.mode === 'month' ? 'Y-m' : 'Y-m-d',
         altInput: true,
         altFormat: props.mode === 'month' ? 'F Y' : 'F j, Y',
@@ -28,6 +31,10 @@ onMounted(() => {
         plugins: props.mode === 'month' ? [monthSelectPlugin({ shorthand: true, dateFormat: 'Y-m', altFormat: 'F Y' })] : [],
         onChange: (_selectedDates, dateString) => emit('update:modelValue', dateString),
     });
+
+    if (isInsideDialog) {
+        picker.input.parentElement?.classList.add('w-full');
+    }
 });
 
 watch(() => props.modelValue, (value) => {

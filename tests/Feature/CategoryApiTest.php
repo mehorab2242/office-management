@@ -12,7 +12,7 @@ class CategoryApiTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_super_admin_can_manage_categories_and_deletion_deactivates_used_category(): void
+    public function test_super_admin_can_delete_used_category_without_deleting_expenses(): void
     {
         $superAdmin = User::factory()->superAdmin()->create();
         $this->actingAs($superAdmin);
@@ -23,12 +23,16 @@ class CategoryApiTest extends TestCase
         $this->putJson("/api/categories/{$id}", ['name' => 'Office Utilities'])
             ->assertOk()->assertJsonPath('data.name', 'Office Utilities');
 
-        Expense::factory()->create(['category_id' => $id]);
+        $expense = Expense::factory()->create(['category_id' => $id]);
+        $softDeletedExpense = Expense::factory()->create(['category_id' => $id]);
+        $softDeletedExpense->delete();
         $this->deleteJson("/api/categories/{$id}")->assertOk();
 
-        $this->assertDatabaseHas('categories', ['id' => $id, 'is_active' => false]);
-        $this->assertDatabaseHas('audit_logs', ['subject_type' => 'Category', 'subject_id' => $id, 'action' => 'category.deactivated']);
-        $this->getJson("/api/categories/{$id}")->assertOk()->assertJsonPath('data.name', 'Office Utilities');
+        $this->assertDatabaseMissing('categories', ['id' => $id]);
+        $this->assertDatabaseHas('expenses', ['id' => $expense->id, 'category_id' => null]);
+        $this->assertDatabaseHas('expenses', ['id' => $softDeletedExpense->id, 'category_id' => null]);
+        $this->assertDatabaseHas('audit_logs', ['subject_type' => 'Category', 'subject_id' => $id, 'action' => 'category.deleted']);
+        $this->getJson("/api/categories/{$id}")->assertNotFound();
     }
 
     public function test_staff_can_read_but_cannot_change_categories(): void

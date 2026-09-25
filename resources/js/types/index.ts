@@ -17,6 +17,7 @@ export interface Category {
 }
 
 export type PaymentStatus = 'paid' | 'unpaid' | 'pending';
+export const PAYMENT_METHOD_OPTIONS = ['Cash', 'Card', 'Bank Transfer', 'Mobile banking'] as const;
 export type PaymentMethod = string;
 
 export interface PayerAllocation {

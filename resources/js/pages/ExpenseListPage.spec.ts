@@ -45,6 +45,11 @@ describe('ExpenseListPage', () => {
         await wrapper.get('[aria-label="Category"]').setValue('3');
         await flushPromises();
         expect(expenseService.listExpenses).toHaveBeenLastCalledWith(expect.objectContaining({ category_id: 3 }));
+        const paymentMethod = wrapper.get('[aria-label="Payment method"]');
+        expect(paymentMethod.element.tagName).toBe('SELECT');
+        await paymentMethod.setValue('Card');
+        await flushPromises();
+        expect(expenseService.listExpenses).toHaveBeenLastCalledWith(expect.objectContaining({ payment_method: 'Card' }));
     });
 
     it('requires confirmation and refreshes after an administrator deletes an expense', async () => {

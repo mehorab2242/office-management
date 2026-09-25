@@ -16,6 +16,7 @@ import { useAuthStore } from '../stores/auth';
 import { useToast } from '../composables/useToast';
 import { formatDate, formatMoney } from '../utils/formatters';
 import type { Category, Expense, PaginationMeta } from '../types';
+import { PAYMENT_METHOD_OPTIONS } from '../types';
 import ExpenseFormDialog from '../components/expenses/ExpenseFormDialog.vue';
 
 const auth = useAuthStore(); const toast = useToast();
@@ -97,7 +98,7 @@ onMounted(async () => { try { categories.value = await listCategories(); } catch
             <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-8">
                 <label class="relative xl:col-span-2"><span class="sr-only">Search expenses</span><Search class="pointer-events-none absolute left-3 top-3.5 size-4 text-slate-400" /><input v-model="filters.search" class="field mt-0 pl-9" placeholder="Search descriptions" /></label>
                 <select v-model="filters.category_id" class="field mt-0" aria-label="Category"><option value="">All categories</option><option v-for="category in categories" :key="category.id" :value="category.id">{{ category.name }}</option></select>
-                <input v-model="filters.payment_method" class="field mt-0" aria-label="Payment method" placeholder="Payment method" />
+                <select v-model="filters.payment_method" class="field mt-0" aria-label="Payment method"><option value="">All payment methods</option><option v-for="method in PAYMENT_METHOD_OPTIONS" :key="method" :value="method">{{ method }}</option></select>
                 <DatePicker v-model="filters.date_from" class="mt-0" aria-label="From date" placeholder="From" />
                 <DatePicker v-model="filters.date_to" class="mt-0" aria-label="To date" placeholder="To" :min-date="filters.date_from || undefined" />
                 <input v-model="filters.amount_min" type="number" min="0" step="0.01" class="field mt-0" aria-label="Minimum amount" placeholder="Minimum amount" />

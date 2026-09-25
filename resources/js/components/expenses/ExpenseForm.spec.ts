@@ -13,16 +13,20 @@ describe('ExpenseForm', () => {
         expect(wrapper.text()).toContain('Enter a description.');
     });
 
-    it('emits the API payload with a first-of-month period', async () => {
+    it('emits the API payload with the selected payment method', async () => {
         const wrapper = mount(ExpenseForm, { props: { categories } });
         await wrapper.get('#expense-date').setValue('2026-09-17');
         await wrapper.get('#description').setValue('Internet service');
         await wrapper.get('#amount').setValue('2500.50');
         await wrapper.get('#category').setValue('3');
+        expect(wrapper.get('#method').element.tagName).toBe('SELECT');
+        expect(wrapper.get('#method').findAll('option').map((option) => option.element.value)).toEqual([
+            '', 'Cash', 'Card', 'Bank Transfer', 'Mobile banking',
+        ]);
+        await wrapper.get('#method').setValue('Card');
         await wrapper.find('form').trigger('submit');
         expect(wrapper.emitted('submit')?.[0]?.[0]).toMatchObject({
-            period_month: '2026-09-01', expense_date: '2026-09-17',
-            description: 'Internet service', amount: 2500.5, category_id: 3,
+            description: 'Internet service', amount: 2500.5, category_id: 3, payment_method: 'Card',
         });
     });
 });

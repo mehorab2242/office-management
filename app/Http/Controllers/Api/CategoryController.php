@@ -10,6 +10,7 @@ use App\Models\Category;
 use App\Services\AuditLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 
 class CategoryController extends Controller
@@ -59,9 +60,14 @@ class CategoryController extends Controller
     public function destroy(Request $request, Category $category, AuditLogger $auditLogger): JsonResponse
     {
         Gate::authorize('delete', $category);
-        $category->update(['is_active' => false]);
-        $auditLogger->record($request->user(), 'category.deactivated', $category, ['is_active' => true], ['is_active' => false]);
+        $before = $category->only(['name', 'description', 'is_active']);
 
-        return response()->json(['success' => true, 'message' => 'Category deactivated successfully.']);
+        DB::transaction(function () use ($category, $request, $auditLogger, $before): void {
+            $category->expenses()->withTrashed()->update(['category_id' => null]);
+            $category->delete();
+            $auditLogger->record($request->user(), 'category.deleted', $category, $before, null);
+        });
+
+        return response()->json(['success' => true, 'message' => 'Category deleted successfully.']);
     }
 }
