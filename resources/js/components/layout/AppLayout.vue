@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import { LayoutDashboard, Menu, ReceiptText, Tags, X, LogOut, ChartNoAxesColumn, FileUp, Users, History } from '@lucide/vue';
+import { LayoutDashboard, Menu, ReceiptText, Tags, X, LogOut, ChartNoAxesColumn, FileUp, Users, History, CircleDollarSign } from '@lucide/vue';
 import { useAuthStore } from '../../stores/auth';
 import { useRouter } from 'vue-router';
 import { useToast } from '../../composables/useToast';
@@ -14,6 +14,7 @@ const links = [
     { name: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { name: 'expenses', label: 'Expenses', icon: ReceiptText },
     { name: 'report-monthly', label: 'Reports', icon: ChartNoAxesColumn, adminOnly: true },
+    { name: 'earnings', label: 'Earnings', icon: CircleDollarSign, adminOnly: true },
 ];
 
 async function handleLogout(): Promise<void> {

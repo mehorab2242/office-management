@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ExpenseResource;
+use App\Models\Earning;
 use App\Models\Expense;
 use App\Services\ReportService;
 use Carbon\Carbon;
@@ -30,18 +31,24 @@ class DashboardController extends Controller
         }
         $monthQuery = (clone $baseQuery)->whereYear('expense_date', $today->year)->whereMonth('expense_date', $today->month);
         $selectedMonthQuery = (clone $baseQuery)->whereYear('expense_date', $selectedYear)->whereMonth('expense_date', $selectedMonth);
+        $earningQuery = Earning::query();
+        $currentMonthEarnings = (clone $earningQuery)->whereYear('earning_date', $today->year)->whereMonth('earning_date', $today->month);
+        $currentYearEarnings = (clone $earningQuery)->whereYear('earning_date', $today->year);
+        $selectedMonthEarnings = (clone $earningQuery)->whereYear('earning_date', $selectedYear)->whereMonth('earning_date', $selectedMonth);
+        $financial = $user->isSuperAdmin() ? $reports->financialSummary($earningQuery, $baseQuery) : null;
 
         return response()->json([
             'success' => true,
             'data' => [
                 ...$this->dashboardSummary($reports, $baseQuery),
+                'financial' => $financial,
                 'today' => $this->dashboardSummary($reports, (clone $baseQuery)->whereDate('expense_date', $today->toDateString())),
-                'current_month' => $this->dashboardSummary($reports, (clone $baseQuery)->whereYear('expense_date', $today->year)->whereMonth('expense_date', $today->month)),
-                'current_year' => $this->dashboardSummary($reports, (clone $baseQuery)->whereYear('expense_date', $today->year)),
+                'current_month' => $user->isSuperAdmin() ? [...$this->dashboardSummary($reports, (clone $baseQuery)->whereYear('expense_date', $today->year)->whereMonth('expense_date', $today->month)), 'financial' => $reports->financialSummary($currentMonthEarnings, (clone $baseQuery)->whereYear('expense_date', $today->year)->whereMonth('expense_date', $today->month))] : $this->dashboardSummary($reports, (clone $baseQuery)->whereYear('expense_date', $today->year)->whereMonth('expense_date', $today->month)),
+                'current_year' => $user->isSuperAdmin() ? [...$this->dashboardSummary($reports, (clone $baseQuery)->whereYear('expense_date', $today->year)), 'financial' => $reports->financialSummary($currentYearEarnings, (clone $baseQuery)->whereYear('expense_date', $today->year))] : $this->dashboardSummary($reports, (clone $baseQuery)->whereYear('expense_date', $today->year)),
                 'monthly_trend' => $reports->months($today->year, $user),
                 'current_month_categories' => $reports->categories($monthQuery),
                 'selected_month' => sprintf('%04d-%02d-01', $selectedYear, $selectedMonth),
-                'selected_month_summary' => $this->dashboardSummary($reports, $selectedMonthQuery),
+                'selected_month_summary' => $user->isSuperAdmin() ? [...$this->dashboardSummary($reports, $selectedMonthQuery), 'financial' => $reports->financialSummary($selectedMonthEarnings, $selectedMonthQuery)] : $this->dashboardSummary($reports, $selectedMonthQuery),
                 'selected_month_categories' => $reports->categories($selectedMonthQuery),
                 'recent_expenses' => ExpenseResource::collection(
                     (clone $baseQuery)->with(['category', 'creator', 'payerAllocations', 'attachments'])

@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\EarningController;
 use App\Http\Controllers\Api\ExpenseController;
 use App\Http\Controllers\Api\ExportController;
 use App\Http\Controllers\Api\ImportController;
@@ -21,6 +22,7 @@ Route::middleware(['auth:sanctum', EnsureActiveUser::class])->group(function ():
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::apiResource('categories', CategoryController::class);
     Route::apiResource('expenses', ExpenseController::class);
+    Route::apiResource('earnings', EarningController::class);
     Route::post('/expenses/{expense}/attachments', [AttachmentController::class, 'store']);
     Route::get('/expenses/{expense}/attachments/{attachment}', [AttachmentController::class, 'show']);
     Route::delete('/expenses/{expense}/attachments/{attachment}', [AttachmentController::class, 'destroy']);

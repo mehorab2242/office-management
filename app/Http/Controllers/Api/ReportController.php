@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\IndexExpenseRequest;
 use App\Http\Resources\ExpenseResource;
+use App\Models\Earning;
 use App\Models\Expense;
 use App\Models\User;
 use App\Services\ExpenseQuery;
@@ -20,11 +21,14 @@ class ReportController extends Controller
         Gate::authorize('viewAny', User::class);
         $validated = $request->validate(['year' => ['required', 'integer', 'between:2000,2100']]);
         $query = Expense::query()->whereYear('expense_date', $validated['year']);
+        $earningQuery = Earning::query()->whereYear('earning_date', $validated['year']);
 
         $summary = $reports->summary($query);
+        $financial = $reports->financialSummary($earningQuery, $query);
+        $summary['financial'] = $financial;
 
         return response()->json(['success' => true, 'data' => [
-            'year' => (int) $validated['year'], 'summary' => $summary,
+            'year' => (int) $validated['year'], 'summary' => $summary, 'financial' => $financial,
             'average_monthly_amount' => bcdiv($summary['total_amount'], '12', 2),
             'months' => $reports->months((int) $validated['year']), 'categories' => $reports->categories($query),
         ]]);
@@ -33,11 +37,22 @@ class ReportController extends Controller
     public function custom(IndexExpenseRequest $request, ExpenseQuery $expenses, ReportService $reports): JsonResponse
     {
         Gate::authorize('viewAny', User::class);
-        $query = $expenses->build($request->safe()->except(['page', 'per_page']), $request->user());
+        $filters = $request->safe()->except(['page', 'per_page']);
+        $query = $expenses->build($filters, $request->user());
+        $earningQuery = Earning::query();
+        if (isset($filters['date_from'])) {
+            $earningQuery->whereDate('earning_date', '>=', $filters['date_from']);
+        }
+        if (isset($filters['date_to'])) {
+            $earningQuery->whereDate('earning_date', '<=', $filters['date_to']);
+        }
+        if (isset($filters['search'])) {
+            $earningQuery->where(fn ($q) => $q->where('description', 'like', '%'.$filters['search'].'%')->orWhere('reference', 'like', '%'.$filters['search'].'%'));
+        }
         $page = (clone $query)->paginate($request->integer('per_page', 20));
 
         return response()->json(['success' => true, 'data' => [
-            'summary' => $reports->summary($query), 'categories' => $reports->categories($query),
+            'summary' => [...$reports->summary($query), 'financial' => $reports->financialSummary($earningQuery, $query)], 'financial' => $reports->financialSummary($earningQuery, $query), 'categories' => $reports->categories($query),
             'expenses' => ExpenseResource::collection($page->getCollection())->resolve(),
             'meta' => ['current_page' => $page->currentPage(), 'last_page' => $page->lastPage(),
                 'per_page' => $page->perPage(), 'total' => $page->total()],

@@ -14,6 +14,7 @@ import CustomReportPage from '../pages/CustomReportPage.vue';
 import ImportPage from '../pages/ImportPage.vue';
 import UserListPage from '../pages/UserListPage.vue';
 import AuditLogPage from '../pages/AuditLogPage.vue';
+import EarningListPage from '../pages/EarningListPage.vue';
 
 export function createAppRouter(): Router {
     const router = createRouter({
@@ -25,6 +26,7 @@ export function createAppRouter(): Router {
             { path: '/expenses', name: 'expenses', component: ExpenseListPage, meta: { auth: true } },
             { path: '/expenses/create', name: 'expense-create', component: ExpenseFormPage, meta: { auth: true } },
             { path: '/expenses/:id/edit', name: 'expense-edit', component: ExpenseFormPage, meta: { auth: true } },
+            { path: '/earnings', name: 'earnings', component: EarningListPage, meta: { auth: true, superAdmin: true } },
             { path: '/categories', name: 'categories', component: CategoryListPage, meta: { auth: true } },
             { path: '/reports', redirect: { name: 'report-monthly' } },
             { path: '/reports/monthly', name: 'report-monthly', component: MonthlyReportPage, meta: { auth: true, superAdmin: true } },

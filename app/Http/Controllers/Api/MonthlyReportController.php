@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\IndexExpenseRequest;
 use App\Http\Resources\ExpenseResource;
+use App\Models\Earning;
 use App\Models\User;
 use App\Services\ExpenseQuery;
 use App\Services\ReportService;
@@ -23,13 +24,17 @@ class MonthlyReportController extends Controller
         $period = sprintf('%04d-%02d-01', $validated['year'], $validated['month']);
         $filters = $request->safe()->except(['page', 'per_page']);
         $query = $expenses->build($filters, $request->user());
+        $earningQuery = Earning::query()->whereYear('earning_date', $validated['year'])->whereMonth('earning_date', $validated['month']);
         $page = (clone $query)->paginate($request->integer('per_page', 15));
+
+        $financial = $reports->financialSummary($earningQuery, $query);
 
         return response()->json([
             'success' => true,
             'data' => [
-                'period_month' => $period,
+                'period' => $period,
                 ...$reports->summary($query),
+                'financial' => $financial,
                 'categories' => $reports->categories($query),
                 'expenses' => ExpenseResource::collection($page->getCollection())->resolve(),
                 'meta' => ['current_page' => $page->currentPage(), 'last_page' => $page->lastPage(),
