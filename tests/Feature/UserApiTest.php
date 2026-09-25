@@ -36,7 +36,35 @@ class UserApiTest extends TestCase
             ->getJson('/api/users')->assertForbidden();
     }
 
-    public function test_staff_creation_rejects_super_admin_role_and_duplicate_email(): void
+    public function test_super_admin_can_create_an_admin_user(): void
+    {
+        $this->actingAs(User::factory()->superAdmin()->create());
+
+        $this->postJson('/api/users', [
+            'name' => 'New Admin',
+            'email' => 'new.admin@example.test',
+            'password' => 'long-password-123',
+            'password_confirmation' => 'long-password-123',
+            'role' => User::ROLE_SUPER_ADMIN,
+        ])->assertCreated()->assertJsonPath('data.role', User::ROLE_SUPER_ADMIN);
+
+        $this->assertDatabaseHas('users', ['email' => 'new.admin@example.test', 'role' => User::ROLE_SUPER_ADMIN]);
+    }
+
+    public function test_a_user_cannot_deactivate_or_delete_their_own_account(): void
+    {
+        $user = User::factory()->superAdmin()->create();
+
+        $this->actingAs($user)
+            ->putJson("/api/users/{$user->id}", ['is_active' => false])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('is_active');
+
+        $this->deleteJson("/api/users/{$user->id}")->assertMethodNotAllowed();
+        $this->assertDatabaseHas('users', ['id' => $user->id, 'is_active' => true]);
+    }
+
+    public function test_user_creation_rejects_unsupported_role_and_duplicate_email(): void
     {
         $this->actingAs(User::factory()->superAdmin()->create());
         User::factory()->create(['email' => 'taken@example.test']);
@@ -46,7 +74,7 @@ class UserApiTest extends TestCase
             'email' => 'escalate@example.test',
             'password' => 'long-password-123',
             'password_confirmation' => 'long-password-123',
-            'role' => 'super_admin',
+            'role' => 'owner',
         ])->assertUnprocessable()->assertJsonValidationErrors('role');
         $this->assertDatabaseMissing('users', ['email' => 'escalate@example.test']);
 

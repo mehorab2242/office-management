@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue';
-import { Pencil, Plus, UserCheck, UserX } from '@lucide/vue';
+import { Eye, EyeOff, Pencil, Plus, UserCheck, UserX } from '@lucide/vue';
 import AppLayout from '../components/layout/AppLayout.vue';
 import BaseButton from '../components/ui/BaseButton.vue';
 import BaseDialog from '../components/ui/BaseDialog.vue';
@@ -23,7 +23,9 @@ const loading = ref(true);
 const saving = ref(false);
 const error = ref('');
 const errors = ref<ValidationErrors>({});
-const form = reactive({ name: '', email: '', password: '', password_confirmation: '', is_active: true });
+const form = reactive({ name: '', email: '', password: '', password_confirmation: '', role: 'staff', is_active: true });
+const passwordVisible = ref(false);
+const confirmationVisible = ref(false);
 
 function isSelf(user: User): boolean { return auth.user?.id === user.id; }
 function roleLabel(user: User): string { return user.role === 'staff' ? 'Staff' : 'Super Admin'; }
@@ -36,13 +38,17 @@ async function load(): Promise<void> {
 
 function startCreate(): void {
     selected.value = null;
-    Object.assign(form, { name: '', email: '', password: '', password_confirmation: '', is_active: true });
+    passwordVisible.value = false;
+    confirmationVisible.value = false;
+    Object.assign(form, { name: '', email: '', password: '', password_confirmation: '', role: 'staff', is_active: true });
     errors.value = {};
     formOpen.value = true;
 }
 
 function startEdit(user: User): void {
     selected.value = user;
+    passwordVisible.value = false;
+    confirmationVisible.value = false;
     Object.assign(form, { name: user.name, email: user.email, password: '', password_confirmation: '', is_active: user.is_active });
     errors.value = {};
     formOpen.value = true;
@@ -57,7 +63,7 @@ async function save(): Promise<void> {
             const payload: Record<string, unknown> = { name: form.name.trim(), email: form.email.trim(), is_active: form.is_active };
             if (form.password) { payload.password = form.password; payload.password_confirmation = form.password_confirmation; }
             await updateUser(selected.value.id, payload);
-            toast.show('Staff account updated');
+            toast.show('User account updated');
         } else {
             await createUser({
                 name: form.name.trim(),
@@ -65,8 +71,9 @@ async function save(): Promise<void> {
                 password: form.password,
                 password_confirmation: form.password_confirmation,
                 is_active: form.is_active,
+                role: form.role,
             });
-            toast.show('Staff account created');
+            toast.show('User account created');
         }
         formOpen.value = false;
         await load();
@@ -85,7 +92,7 @@ async function deactivateSelected(): Promise<void> {
     saving.value = true;
     try {
         await updateUser(selected.value.id, { is_active: false });
-        toast.show('Staff account deactivated');
+        toast.show('User account deactivated');
         deactivateOpen.value = false;
         await load();
     } catch (caught) {
@@ -115,16 +122,16 @@ onMounted(load);
         <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
                 <p class="text-sm font-medium text-brand-700">Administration</p>
-                <h1 class="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">Staff Management</h1>
-                <p class="mt-1 text-sm text-slate-500">Manage staff accounts, access, and status.</p>
+                <h1 class="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">User Management</h1>
+                <p class="mt-1 text-sm text-slate-500">Manage staff and administrator accounts, access, and status.</p>
             </div>
-            <BaseButton @click="startCreate"><Plus class="size-4" />Add Staff</BaseButton>
+            <BaseButton @click="startCreate"><Plus class="size-4" />Add user</BaseButton>
         </div>
         <p v-if="error" class="mt-6 rounded-lg bg-red-50 p-3 text-sm text-red-700">{{ error }}</p>
-        <LoadingState v-if="loading" label="Loading staff accounts…" />
+        <LoadingState v-if="loading" label="Loading user accounts…" />
         <section v-else class="mt-6 overflow-hidden rounded-xl border bg-white">
-            <EmptyState v-if="!users.length" title="No staff accounts yet" description="Add the first staff account so team members can record expenses.">
-                <BaseButton @click="startCreate">Add Staff</BaseButton>
+            <EmptyState v-if="!users.length" title="No user accounts yet" description="Add a staff or administrator account to get started.">
+                <BaseButton @click="startCreate">Add user</BaseButton>
             </EmptyState>
             <div v-else>
                 <div class="hidden overflow-x-auto md:block">
@@ -185,7 +192,7 @@ onMounted(load);
                 </div>
             </div>
         </section>
-        <BaseDialog v-model:open="formOpen" :title="selected ? 'Edit staff account' : 'Add staff'" description="Staff accounts can record and manage expenses.">
+        <BaseDialog v-model:open="formOpen" :title="selected ? 'Edit account' : 'Add user'" description="Manage staff and administrator accounts.">
             <form class="mt-5 space-y-4" @submit.prevent="save">
                 <label class="block">
                     <span class="label">Name</span>
@@ -197,14 +204,22 @@ onMounted(load);
                     <input v-model="form.email" class="field" type="email" maxlength="255" />
                     <span v-if="errors.email" class="error-text">{{ errors.email[0] }}</span>
                 </label>
+                <label v-if="!selected" class="block">
+                    <span class="label">Role</span>
+                    <select v-model="form.role" class="field" aria-label="Role">
+                        <option value="staff">Staff</option>
+                        <option value="super_admin">Admin</option>
+                    </select>
+                    <span v-if="errors.role" class="error-text">{{ errors.role[0] }}</span>
+                </label>
                 <label class="block">
                     <span class="label">{{ selected ? 'New password (optional)' : 'Password' }}</span>
-                    <input v-model="form.password" class="field" type="password" minlength="12" />
+                    <div class="relative"><input v-model="form.password" class="field pr-11" :type="passwordVisible ? 'text' : 'password'" minlength="12" /><button type="button" class="absolute inset-y-0 right-0 flex items-center px-3 text-slate-500 hover:text-slate-700" :aria-label="passwordVisible ? 'Hide password' : 'Show password'" :aria-pressed="passwordVisible" @click="passwordVisible = !passwordVisible"><EyeOff v-if="passwordVisible" class="size-4" /><Eye v-else class="size-4" /></button></div>
                     <span v-if="errors.password" class="error-text">{{ errors.password[0] }}</span>
                 </label>
                 <label class="block">
                     <span class="label">{{ selected ? 'Confirm new password' : 'Confirm password' }}</span>
-                    <input v-model="form.password_confirmation" class="field" type="password" minlength="12" />
+                    <div class="relative"><input v-model="form.password_confirmation" class="field pr-11" :type="confirmationVisible ? 'text' : 'password'" minlength="12" /><button type="button" class="absolute inset-y-0 right-0 flex items-center px-3 text-slate-500 hover:text-slate-700" :aria-label="confirmationVisible ? 'Hide password confirmation' : 'Show password confirmation'" :aria-pressed="confirmationVisible" @click="confirmationVisible = !confirmationVisible"><EyeOff v-if="confirmationVisible" class="size-4" /><Eye v-else class="size-4" /></button></div>
                     <span v-if="errors.password_confirmation" class="error-text">{{ errors.password_confirmation[0] }}</span>
                 </label>
                 <label class="block">
@@ -216,7 +231,7 @@ onMounted(load);
                 </label>
                 <div class="flex justify-end gap-2">
                     <BaseButton variant="secondary" @click="formOpen = false">Cancel</BaseButton>
-                    <BaseButton type="submit" :loading="saving">{{ selected ? 'Save changes' : 'Create staff account' }}</BaseButton>
+                    <BaseButton type="submit" :loading="saving">{{ selected ? 'Save changes' : 'Create account' }}</BaseButton>
                 </div>
             </form>
         </BaseDialog>

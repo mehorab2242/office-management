@@ -28,7 +28,7 @@ class CategoryPolicy
      */
     public function create(User $user): bool
     {
-        return $user->is_active && $user->isSuperAdmin();
+        return $user->is_active;
     }
 
     /**
@@ -36,7 +36,7 @@ class CategoryPolicy
      */
     public function update(User $user, Category $category): bool
     {
-        return $user->is_active && $user->isSuperAdmin();
+        return $user->is_active;
     }
 
     /**
@@ -44,7 +44,7 @@ class CategoryPolicy
      */
     public function delete(User $user, Category $category): bool
     {
-        return $user->is_active && $user->isSuperAdmin();
+        return $user->is_active;
     }
 
     /**

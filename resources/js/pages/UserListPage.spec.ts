@@ -49,12 +49,16 @@ describe('UserListPage', () => {
         expect(wrapper.text()).toContain('Active');
     });
 
-    it('creates a staff account without sending a role', async () => {
+    it('creates a user with the selected role', async () => {
         const wrapper = mount(UserListPage, { attachTo: document.body });
         await flushPromises();
 
-        await wrapper.findAll('button').find((button) => button.text().includes('Add Staff'))!.trigger('click');
+        await wrapper.findAll('button').find((button) => button.text().includes('Add user'))!.trigger('click');
         await flushPromises();
+
+        const roleSelect = document.body.querySelector<HTMLSelectElement>('[aria-label="Role"]')!;
+        roleSelect.value = 'super_admin';
+        roleSelect.dispatchEvent(new Event('change', { bubbles: true }));
 
         const [nameInput, emailInput, passwordInput, confirmationInput] =
             Array.from(document.body.querySelectorAll('input'));
@@ -64,7 +68,7 @@ describe('UserListPage', () => {
         setInput(confirmationInput, 'long-password-123');
         await flushPromises();
 
-        dialogButton('Create staff account')?.click();
+        dialogButton('Create account')?.click();
         await flushPromises();
 
         expect(usersService.createUser).toHaveBeenCalledWith({
@@ -73,6 +77,7 @@ describe('UserListPage', () => {
             password: 'long-password-123',
             password_confirmation: 'long-password-123',
             is_active: true,
+            role: 'super_admin',
         });
         wrapper.unmount();
     });

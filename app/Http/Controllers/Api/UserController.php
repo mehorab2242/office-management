@@ -33,7 +33,8 @@ class UserController extends Controller
 
     public function store(StoreUserRequest $request, AuditLogger $auditLogger): JsonResponse
     {
-        $user = User::create(['is_active' => true, ...$request->validated(), 'role' => User::ROLE_STAFF]);
+        $validated = $request->validated();
+        $user = User::create(['is_active' => true, ...$validated, 'role' => $validated['role'] ?? User::ROLE_STAFF]);
         $auditLogger->record($request->user(), 'user.created', $user, null, $user->only(['name', 'email', 'role', 'is_active']));
 
         return response()->json([

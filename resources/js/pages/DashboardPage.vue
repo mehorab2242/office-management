@@ -21,8 +21,9 @@ const stats = computed(() => {
     const data = dashboard.value?.selected_month_summary ?? dashboard.value;
     if (!data) return [];
     return [
-        ...(data.financial ? [{ label: 'Revenue', value: formatMoney(data.financial.total_revenue), icon: CircleDollarSign, tone: 'text-emerald-700 bg-emerald-50' }, { label: data.financial.is_loss ? 'Net loss' : 'Net profit', value: formatMoney(data.financial.net_profit), icon: ArrowUp, tone: data.financial.is_loss ? 'text-red-700 bg-red-50' : 'text-blue-700 bg-blue-50' }] : []),
+        ...(data.financial ? [{ label: 'Total Earning', value: formatMoney(data.financial.total_revenue), icon: CircleDollarSign, tone: 'text-emerald-700 bg-emerald-50' }] : []),
         { label: 'Total expenses', value: formatMoney(data.total_amount), icon: CircleDollarSign, tone: 'text-slate-700 bg-slate-100' },
+        ...(data.financial ? [{ label: data.financial.is_loss ? 'Net loss' : 'Net profit', value: formatMoney(data.financial.net_profit), icon: ArrowUp, tone: data.financial.is_loss ? 'text-red-700 bg-red-50' : 'text-blue-700 bg-blue-50' }] : []),
         { label: 'Transactions', value: String(data.transaction_count), icon: ReceiptText, tone: 'text-brand-700 bg-brand-50' },
         { label: 'Average expense', value: formatMoney(data.average_amount ?? '0'), icon: Calculator, tone: 'text-violet-700 bg-violet-50' },
         { label: 'Largest expense', value: formatMoney(data.largest_amount ?? '0'), icon: ArrowUp, tone: 'text-amber-700 bg-amber-50' },
@@ -69,3 +70,4 @@ onMounted(load);
         <ExpenseFormDialog v-model:open="expenseFormOpen" :expense-id="null" @saved="load" />
     </AppLayout>
 </template>
+

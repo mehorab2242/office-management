@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { Building2 } from '@lucide/vue';
+import { Building2, Eye, EyeOff } from '@lucide/vue';
 import BaseButton from '../components/ui/BaseButton.vue';
 import { useAuthStore } from '../stores/auth';
 import { apiErrorMessage } from '../services/api';
@@ -11,6 +11,7 @@ const route = useRoute();
 const router = useRouter();
 const email = ref('');
 const password = ref('');
+const passwordVisible = ref(false);
 const loading = ref(false);
 const error = ref('');
 
@@ -46,7 +47,7 @@ async function submit(): Promise<void> {
                 <p class="mt-2 text-slate-500">Sign in to manage office expenses.</p>
                 <form class="mt-8 space-y-5" @submit.prevent="submit">
                     <div><label class="label" for="email">Email address</label><input id="email" v-model.trim="email" class="field" type="email" autocomplete="email" placeholder="name@company.com" /></div>
-                    <div><label class="label" for="password">Password</label><input id="password" v-model="password" class="field" type="password" autocomplete="current-password" /></div>
+                    <div><label class="label" for="password">Password</label><div class="relative"><input id="password" v-model="password" class="field pr-11" :type="passwordVisible ? 'text' : 'password'" autocomplete="current-password" /><button type="button" class="absolute inset-y-0 right-0 flex items-center px-3 text-slate-500 hover:text-slate-700" :aria-label="passwordVisible ? 'Hide password' : 'Show password'" :aria-pressed="passwordVisible" @click="passwordVisible = !passwordVisible"><EyeOff v-if="passwordVisible" class="size-4" /><Eye v-else class="size-4" /></button></div></div>
                     <p v-if="error" class="rounded-lg bg-red-50 p-3 text-sm text-red-700" role="alert">{{ error }}</p>
                     <BaseButton type="submit" class="w-full" :loading="loading">Sign in</BaseButton>
                 </form>

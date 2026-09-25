@@ -35,14 +35,18 @@ class CategoryApiTest extends TestCase
         $this->getJson("/api/categories/{$id}")->assertNotFound();
     }
 
-    public function test_staff_can_read_but_cannot_change_categories(): void
+    public function test_staff_can_read_create_update_and_delete_categories(): void
     {
         $staff = User::factory()->staff()->create();
         $category = Category::factory()->create();
 
         $this->actingAs($staff)->getJson('/api/categories')->assertOk();
-        $this->postJson('/api/categories', ['name' => 'New'])->assertForbidden();
-        $this->deleteJson("/api/categories/{$category->id}")->assertForbidden();
+        $id = $this->postJson('/api/categories', ['name' => 'New'])
+            ->assertCreated()->assertJsonPath('data.name', 'New')->json('data.id');
+        $this->putJson("/api/categories/{$id}", ['name' => 'Updated'])
+            ->assertOk()->assertJsonPath('data.name', 'Updated');
+        $this->deleteJson("/api/categories/{$category->id}")->assertOk();
+        $this->assertDatabaseMissing('categories', ['id' => $category->id]);
     }
 
     public function test_duplicate_category_name_is_rejected(): void
