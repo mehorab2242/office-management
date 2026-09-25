@@ -17,9 +17,9 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        if (! app()->environment('local', 'testing')) {
-            return;
-        }
+//        if (! app()->environment('local', 'testing')) {
+//            return;
+//        }
 
         $superAdmin = User::updateOrCreate(
             ['email' => 'admin@example.test'],
