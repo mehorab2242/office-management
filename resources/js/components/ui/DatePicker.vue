@@ -40,5 +40,5 @@ onBeforeUnmount(() => picker?.destroy());
 </script>
 
 <template>
-    <input ref="input" v-bind="$attrs" class="field" :value="modelValue" />
+    <input ref="input" v-bind="$attrs" class="field min-w-0 max-w-full" :value="modelValue" />
 </template>

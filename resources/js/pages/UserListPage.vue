@@ -128,7 +128,7 @@ onMounted(load);
             </EmptyState>
             <div v-else>
                 <div class="hidden overflow-x-auto md:block">
-                    <table class="w-full text-left text-sm">
+                    <table class="w-full min-w-[52rem] text-left text-sm">
                         <thead class="border-b bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                             <tr>
                                 <th class="px-5 py-3 font-medium">Name</th>

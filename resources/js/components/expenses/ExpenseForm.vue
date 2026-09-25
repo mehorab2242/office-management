@@ -9,9 +9,10 @@ const props = withDefaults(defineProps<{
     categories: Category[];
     loading?: boolean;
     serverErrors?: ValidationErrors;
-}>(), { expense: null, loading: false, serverErrors: () => ({}) });
+    modal?: boolean;
+}>(), { expense: null, loading: false, serverErrors: () => ({}), modal: false });
 
-const emit = defineEmits<{ submit: [payload: ExpensePayload] }>();
+const emit = defineEmits<{ submit: [payload: ExpensePayload]; cancel: [] }>();
 const localErrors = ref<ValidationErrors>({});
 const today = new Date();
 const todayDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
@@ -21,7 +22,17 @@ const form = reactive({
 });
 
 watch(() => props.expense, (expense) => {
-    if (!expense) return;
+    if (!expense) {
+        form.expense_date = todayDate;
+        form.description = '';
+        form.amount = '';
+        form.category_id = '';
+        form.payment_method = '';
+        form.reference = '';
+        form.note = '';
+        localErrors.value = {};
+        return;
+    }
     form.expense_date = expense.expense_date ?? '';
     form.description = expense.description;
     form.amount = expense.amount;
@@ -69,6 +80,6 @@ function errorFor(field: string): string | undefined { return errors.value[field
         <div><label class="label" for="reference">Reference</label><input id="reference" v-model="form.reference" class="field" maxlength="255" placeholder="Invoice or transaction reference" /></div>
         <div><label class="label" for="note">Notes</label><textarea id="note" v-model="form.note" class="field min-h-28 resize-y" maxlength="5000" placeholder="Optional context" /></div>
         <p v-if="errorFor('payer_allocations')" class="error-text">{{ errorFor('payer_allocations') }}</p>
-        <div class="flex flex-col-reverse gap-3 border-t pt-5 sm:flex-row sm:justify-end"><RouterLink :to="{ name: 'expenses' }" class="inline-flex min-h-10 items-center justify-center rounded-lg border bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Cancel</RouterLink><BaseButton type="submit" :loading="loading">{{ expense ? 'Save changes' : 'Create expense' }}</BaseButton></div>
+        <div class="flex flex-col-reverse gap-3 border-t pt-5 sm:flex-row sm:justify-end"><button v-if="modal" type="button" class="inline-flex min-h-10 items-center justify-center rounded-lg border bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50" @click="emit('cancel')">Cancel</button><RouterLink v-else :to="{ name: 'expenses' }" class="inline-flex min-h-10 items-center justify-center rounded-lg border bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Cancel</RouterLink><BaseButton type="submit" :loading="loading">{{ expense ? 'Save changes' : 'Create expense' }}</BaseButton></div>
     </form>
 </template>

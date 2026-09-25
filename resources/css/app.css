@@ -22,7 +22,7 @@
 
 @layer components {
     .card { @apply rounded-xl border bg-white p-5; }
-    .field { @apply mt-1 w-full rounded-lg border bg-white px-3 py-2 text-sm placeholder:text-slate-400 disabled:bg-slate-100; }
+    .field { @apply mt-1 w-full min-w-0 max-w-full rounded-lg border bg-white px-3 py-2 text-sm placeholder:text-slate-400 disabled:bg-slate-100; }
     .label { @apply text-sm font-medium text-slate-700; }
     .error-text { @apply mt-1 text-sm text-red-600; }
 }

@@ -3,7 +3,6 @@ import { useAuthStore } from '../stores/auth';
 import LoginPage from '../pages/LoginPage.vue';
 import DashboardPage from '../pages/DashboardPage.vue';
 import ExpenseListPage from '../pages/ExpenseListPage.vue';
-import ExpenseFormPage from '../pages/ExpenseFormPage.vue';
 import CategoryListPage from '../pages/CategoryListPage.vue';
 import ForbiddenPage from '../pages/ForbiddenPage.vue';
 import NotFoundPage from '../pages/NotFoundPage.vue';
@@ -24,8 +23,6 @@ export function createAppRouter(): Router {
             { path: '/login', name: 'login', component: LoginPage, meta: { guest: true } },
             { path: '/dashboard', name: 'dashboard', component: DashboardPage, meta: { auth: true } },
             { path: '/expenses', name: 'expenses', component: ExpenseListPage, meta: { auth: true } },
-            { path: '/expenses/create', name: 'expense-create', component: ExpenseFormPage, meta: { auth: true } },
-            { path: '/expenses/:id/edit', name: 'expense-edit', component: ExpenseFormPage, meta: { auth: true } },
             { path: '/earnings', name: 'earnings', component: EarningListPage, meta: { auth: true, superAdmin: true } },
             { path: '/categories', name: 'categories', component: CategoryListPage, meta: { auth: true } },
             { path: '/reports', redirect: { name: 'report-monthly' } },
