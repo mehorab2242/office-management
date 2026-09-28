@@ -5,12 +5,14 @@ import BaseButton from '../components/ui/BaseButton.vue';
 import LoadingState from '../components/ui/LoadingState.vue';
 import DatePicker from '../components/ui/DatePicker.vue';
 import { listAuditLogs } from '../services/audit';
+import { listCategories } from '../services/categories';
 import { listUsers } from '../services/users';
 import { apiErrorMessage } from '../services/api';
 import { formatDateTime } from '../utils/formatters';
-import type { AuditLog, PaginationMeta, User } from '../types';
+import { presentAuditLog } from '../utils/auditPresentation';
+import type { AuditLog, Category, PaginationMeta, User } from '../types';
 
-const logs = ref<AuditLog[]>([]); const users = ref<User[]>([]);
+const logs = ref<AuditLog[]>([]); const users = ref<User[]>([]); const categories = ref<Category[]>([]);
 const meta = ref<PaginationMeta>({ current_page: 1, last_page: 1, per_page: 20, total: 0 });
 const loading = ref(true); const error = ref('');
 const filters = reactive({ action: '', actor_user_id: '', subject_type: '', date_from: '', date_to: '' });
@@ -18,9 +20,10 @@ const pageNumbers = computed(() => Array.from({ length: meta.value.last_page }, 
     .filter((page) => Math.abs(page - meta.value.current_page) <= 2));
 const showingFrom = computed(() => meta.value.total === 0 ? 0 : (meta.value.current_page - 1) * meta.value.per_page + 1);
 const showingTo = computed(() => Math.min(meta.value.current_page * meta.value.per_page, meta.value.total));
+const entries = computed(() => logs.value.map((log) => ({ log, ...presentAuditLog(log, users.value, categories.value) })));
 async function load(page=1): Promise<void> { loading.value = true; try { const response = await listAuditLogs({ page, ...Object.fromEntries(Object.entries(filters).filter(([,v]) => v)) }); logs.value = response.data; meta.value = response.meta; error.value=''; } catch(e) { error.value=apiErrorMessage(e); } finally { loading.value=false; } }
 function clearFilters(): void { Object.assign(filters, { action: '', actor_user_id: '', subject_type: '', date_from: '', date_to: '' }); load(); }
-onMounted(async () => { try { users.value = await listUsers(); } catch { users.value = []; } await load(); });
+onMounted(async () => { try { users.value = await listUsers(); } catch { users.value = []; } try { categories.value = await listCategories(); } catch { categories.value = []; } await load(); });
 </script>
 <template>
     <AppLayout><div><p class="text-sm font-medium text-brand-700">Administration</p><h1 class="mt-1 text-3xl font-semibold">Audit log</h1><p class="mt-1 text-sm text-slate-500">A read only record of sensitive changes.</p></div>
@@ -33,6 +36,6 @@ onMounted(async () => { try { users.value = await listUsers(); } catch { users.v
             <div class="flex items-end gap-2"><BaseButton type="submit">Filter</BaseButton><BaseButton type="button" variant="secondary" @click="clearFilters">Clear</BaseButton></div>
         </form>
         <p v-if="error" class="mt-5 rounded-lg bg-red-50 p-3 text-red-700">{{ error }}</p><LoadingState v-if="loading" label="Loading audit log…" />
-        <section v-else class="mt-6 overflow-hidden rounded-xl border bg-white"><div class="divide-y"><article v-for="log in logs" :key="log.id" class="p-4"><div class="flex flex-wrap items-center justify-between gap-2"><strong class="max-w-full break-words text-sm">{{ log.action }}</strong><time class="text-xs text-slate-500">{{ formatDateTime(log.created_at, true) }}</time></div><p class="mt-1 break-words text-sm text-slate-600">{{ log.actor?.name ?? 'System' }} · {{ log.subject_type }} #{{ log.subject_id }}</p><details v-if="log.old_values || log.new_values" class="mt-2 text-xs"><summary class="cursor-pointer text-brand-700">View changes</summary><pre class="mt-2 max-w-full overflow-auto rounded bg-slate-950 p-3 text-slate-100">{{ JSON.stringify({ before: log.old_values, after: log.new_values }, null, 2) }}</pre></details></article><p v-if="!logs.length" class="p-8 text-center text-sm text-slate-500">No activity matches these filters.</p></div><footer class="flex flex-col gap-3 border-t bg-slate-50 px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between"><span>Showing {{ showingFrom }}–{{ showingTo }} of {{ meta.total }}</span><div class="flex flex-wrap gap-2"><BaseButton variant="secondary" :disabled="meta.current_page <= 1" @click="load(meta.current_page - 1)">Previous</BaseButton><BaseButton v-for="page in pageNumbers" :key="page" :variant="page === meta.current_page ? 'primary' : 'secondary'" @click="load(page)">{{ page }}</BaseButton><BaseButton variant="secondary" :disabled="meta.current_page >= meta.last_page" @click="load(meta.current_page + 1)">Next</BaseButton></div></footer></section>
+        <section v-else class="mt-6 overflow-hidden rounded-xl border bg-white"><div class="divide-y"><article v-for="entry in entries" :key="entry.log.id" class="p-4"><div class="flex flex-wrap items-center justify-between gap-2"><strong class="max-w-full break-words text-sm">{{ entry.title }}</strong><time class="text-xs text-slate-500">{{ formatDateTime(entry.log.created_at, true) }}</time></div><p class="mt-1 break-words text-sm text-slate-600">{{ entry.summary }}</p><details v-if="entry.changes.length" class="mt-2 text-xs"><summary class="cursor-pointer text-brand-700">View changes</summary><dl class="mt-2 flex max-w-full flex-col gap-2 rounded-lg bg-slate-50 p-3 text-slate-700"><div v-for="change in entry.changes" :key="change.field" class="min-w-0"><dt class="font-medium text-slate-500">{{ change.label }}</dt><dd class="mt-0.5 break-words"><template v-if="change.before !== null && change.after !== null">{{ change.before }} → {{ change.after }}</template><template v-else>{{ change.after ?? change.before }}</template></dd></div></dl></details></article><p v-if="!logs.length" class="p-8 text-center text-sm text-slate-500">No activity matches these filters.</p></div><footer class="flex flex-col gap-3 border-t bg-slate-50 px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between"><span>Showing {{ showingFrom }}–{{ showingTo }} of {{ meta.total }}</span><div class="flex flex-wrap gap-2"><BaseButton variant="secondary" :disabled="meta.current_page <= 1" @click="load(meta.current_page - 1)">Previous</BaseButton><BaseButton v-for="page in pageNumbers" :key="page" :variant="page === meta.current_page ? 'primary' : 'secondary'" @click="load(page)">{{ page }}</BaseButton><BaseButton variant="secondary" :disabled="meta.current_page >= meta.last_page" @click="load(meta.current_page + 1)">Next</BaseButton></div></footer></section>
     </AppLayout>
 </template>

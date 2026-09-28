@@ -2,9 +2,11 @@ import { flushPromises, mount } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AuditLogPage from './AuditLogPage.vue';
 import * as auditService from '../services/audit';
+import * as categoryService from '../services/categories';
 import * as userService from '../services/users';
 
 vi.mock('../services/audit');
+vi.mock('../services/categories');
 vi.mock('../services/users');
 vi.mock('../components/layout/AppLayout.vue', () => ({ default: { template: '<div><slot /></div>' } }));
 vi.mock('../components/ui/DatePicker.vue', () => ({
@@ -25,6 +27,7 @@ describe('AuditLogPage', () => {
         vi.mocked(userService.listUsers).mockReset().mockResolvedValue([
             { id: 2, name: 'Jane Staff', email: 'jane@example.com', role: 'staff', is_active: true },
         ]);
+        vi.mocked(categoryService.listCategories).mockReset().mockResolvedValue([]);
     });
 
     it('clears audit filters and reloads the first page', async () => {
