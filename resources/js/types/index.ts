@@ -89,7 +89,7 @@ export interface DashboardSummary {
     financial?: FinancialSummary;
 }
 
-export interface DashboardData extends DashboardSummary {
+export interface DashboardData extends Omit<DashboardSummary, 'financial'> {
     financial?: FinancialSummary | null;
     current_month: DashboardSummary;
     today?: DashboardSummary;
@@ -98,10 +98,16 @@ export interface DashboardData extends DashboardSummary {
     current_month_categories?: MonthlyCategoryTotal[];
     selected_month?: string;
     selected_month_summary?: DashboardSummary;
+    previous_month_summary?: FinancialSummary | null;
     selected_month_categories?: MonthlyCategoryTotal[];
+    selected_month_earning_sources?: MonthlyCategoryTotal[] | null;
+    selected_month_daily_trend?: DailyFinancialTotal[] | null;
     recent_expenses?: Expense[];
+    recent_transactions?: DashboardTransaction[] | null;
 }
-export interface FinancialSummary { total_revenue: string; total_cost: string; net_profit: string; is_loss: boolean; transaction_count: number; }
+export interface FinancialSummary { total_revenue: string; total_cost: string; net_profit: string; profit_margin: string; is_loss: boolean; transaction_count: number; }
+export interface DailyFinancialTotal { date: string; revenue: string; cost: string; }
+export interface DashboardTransaction { id: number; type: 'earning' | 'expense'; date: string; description: string; category: string; amount: string; }
 
 export interface MonthlyCategoryTotal {
     name: string;

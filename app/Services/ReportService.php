@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Earning;
 use App\Models\Expense;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 
 class ReportService
@@ -14,8 +15,9 @@ class ReportService
         $revenue = $this->money((clone $earnings)->reorder()->sum('amount'));
         $cost = $this->money((clone $expenses)->reorder()->sum('amount'));
         $profit = bcsub($revenue, $cost, 2);
+        $margin = bccomp($revenue, '0.00', 2) === 0 ? '0.00' : bcmul(bcdiv($profit, $revenue, 6), '100', 2);
 
-        return ['total_revenue' => $revenue, 'total_cost' => $cost, 'net_profit' => $profit, 'is_loss' => bccomp($profit, '0.00', 2) < 0, 'transaction_count' => (clone $earnings)->reorder()->count() + (clone $expenses)->reorder()->count()];
+        return ['total_revenue' => $revenue, 'total_cost' => $cost, 'net_profit' => $profit, 'profit_margin' => $margin, 'is_loss' => bccomp($profit, '0.00', 2) < 0, 'transaction_count' => (clone $earnings)->reorder()->count() + (clone $expenses)->reorder()->count()];
     }
 
     public function summary(Builder $query): array
@@ -39,6 +41,30 @@ class ReportService
             ->map(fn ($row): array => ['name' => $row->name, 'total' => $this->money($row->total)])->all();
     }
 
+    public function earningSources(Builder $query): array
+    {
+        return (clone $query)->reorder()
+            ->selectRaw("COALESCE(NULLIF(source, ''), 'Uncategorized') as name, SUM(amount) as total")
+            ->groupByRaw("COALESCE(NULLIF(source, ''), 'Uncategorized')")->orderByDesc('total')->get()
+            ->map(fn ($row): array => ['name' => $row->name, 'total' => $this->money($row->total)])->all();
+    }
+
+    public function dailyFinancialTrend(Builder $earnings, Builder $expenses, int $year, int $month): array
+    {
+        $start = CarbonImmutable::create($year, $month, 1)->startOfMonth();
+        $end = $start->endOfMonth();
+        $dailyEarnings = (clone $earnings)->reorder()->whereBetween('earning_date', [$start->toDateString(), $end->toDateString()])
+            ->selectRaw('DATE(earning_date) as day, SUM(amount) as total')->groupBy('day')->get()->keyBy('day');
+        $dailyExpenses = (clone $expenses)->reorder()->whereBetween('expense_date', [$start->toDateString(), $end->toDateString()])
+            ->selectRaw('DATE(expense_date) as day, SUM(amount) as total')->groupBy('day')->get()->keyBy('day');
+
+        return collect(range(1, $end->day))->map(function (int $day) use ($start, $dailyEarnings, $dailyExpenses): array {
+            $date = $start->setDay($day)->toDateString();
+
+            return ['date' => $date, 'revenue' => $this->money($dailyEarnings->get($date)?->total), 'cost' => $this->money($dailyExpenses->get($date)?->total)];
+        })->all();
+    }
+
     public function months(int $year, ?User $user = null): array
     {
         $expenseExpression = Expense::query()->getConnection()->getDriverName() === 'sqlite'
@@ -53,15 +79,25 @@ class ReportService
             ->selectRaw("{$expenseExpression} as month, SUM(amount) as total, COUNT(*) as transaction_count")
             ->groupByRaw($expenseExpression)->get()->keyBy('month');
 
-        $earningTotals = Earning::query()->whereYear('earning_date', $year)->selectRaw("{$earningExpression} as month, SUM(amount) as total, COUNT(*) as transaction_count")->groupByRaw($earningExpression)->get()->keyBy('month');
+        $includeFinancials = $user === null || $user->isSuperAdmin();
+        $earningTotals = $includeFinancials
+            ? Earning::query()->whereYear('earning_date', $year)->selectRaw("{$earningExpression} as month, SUM(amount) as total, COUNT(*) as transaction_count")->groupByRaw($earningExpression)->get()->keyBy('month')
+            : collect();
 
-        return collect(range(1, 12))->map(function (int $month) use ($totals, $earningTotals): array {
+        return collect(range(1, 12))->map(function (int $month) use ($totals, $earningTotals, $includeFinancials): array {
             $row = $totals->get($month);
             $earning = $earningTotals->get($month);
             $cost = $this->money($row?->total);
-            $revenue = $this->money($earning?->total);
 
-            return ['month' => $month, 'total' => $cost, 'revenue' => $revenue, 'cost' => $cost, 'net_profit' => bcsub($revenue, $cost, 2), 'transaction_count' => (int) ($row?->transaction_count ?? 0) + (int) ($earning?->transaction_count ?? 0)];
+            $result = ['month' => $month, 'total' => $cost, 'cost' => $cost, 'transaction_count' => (int) ($row?->transaction_count ?? 0)];
+            if ($includeFinancials) {
+                $revenue = $this->money($earning?->total);
+                $result['revenue'] = $revenue;
+                $result['net_profit'] = bcsub($revenue, $cost, 2);
+                $result['transaction_count'] += (int) ($earning?->transaction_count ?? 0);
+            }
+
+            return $result;
         })->all();
     }
 
