@@ -43,10 +43,12 @@ class ReportService
 
     public function earningSources(Builder $query): array
     {
-        return (clone $query)->reorder()
-            ->selectRaw("COALESCE(NULLIF(source, ''), 'Uncategorized') as name, SUM(amount) as total")
-            ->groupByRaw("COALESCE(NULLIF(source, ''), 'Uncategorized')")->orderByDesc('total')->get()
-            ->map(fn ($row): array => ['name' => $row->name, 'total' => $this->money($row->total)])->all();
+        return (clone $query)->reorder()->toBase()
+            ->selectRaw('source, SUM(amount) as total')
+            ->groupBy('source')->get()
+            ->groupBy(fn ($row): string => filled($row->source) ? $row->source : 'Uncategorized')
+            ->map(fn ($rows, string $name): array => ['name' => $name, 'total' => $this->money($rows->reduce(fn (string $sum, $row): string => bcadd($sum, (string) $row->total, 2), '0'))])
+            ->sortByDesc(fn (array $source): float => (float) $source['total'])->values()->all();
     }
 
     public function dailyFinancialTrend(Builder $earnings, Builder $expenses, int $year, int $month): array
@@ -54,9 +56,9 @@ class ReportService
         $start = CarbonImmutable::create($year, $month, 1)->startOfMonth();
         $end = $start->endOfMonth();
         $dailyEarnings = (clone $earnings)->reorder()->whereBetween('earning_date', [$start->toDateString(), $end->toDateString()])
-            ->selectRaw('DATE(earning_date) as day, SUM(amount) as total')->groupBy('day')->get()->keyBy('day');
+            ->selectRaw('DATE(earning_date) as day, SUM(amount) as total')->groupByRaw('DATE(earning_date)')->get()->keyBy('day');
         $dailyExpenses = (clone $expenses)->reorder()->whereBetween('expense_date', [$start->toDateString(), $end->toDateString()])
-            ->selectRaw('DATE(expense_date) as day, SUM(amount) as total')->groupBy('day')->get()->keyBy('day');
+            ->selectRaw('DATE(expense_date) as day, SUM(amount) as total')->groupByRaw('DATE(expense_date)')->get()->keyBy('day');
 
         return collect(range(1, $end->day))->map(function (int $day) use ($start, $dailyEarnings, $dailyExpenses): array {
             $date = $start->setDay($day)->toDateString();
