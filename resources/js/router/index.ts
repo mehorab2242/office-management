@@ -14,6 +14,7 @@ import ImportPage from '../pages/ImportPage.vue';
 import UserListPage from '../pages/UserListPage.vue';
 import AuditLogPage from '../pages/AuditLogPage.vue';
 import EarningListPage from '../pages/EarningListPage.vue';
+import OnHandPage from '../pages/OnHandPage.vue';
 
 export function createAppRouter(): Router {
     const router = createRouter({
@@ -24,6 +25,7 @@ export function createAppRouter(): Router {
             { path: '/dashboard', name: 'dashboard', component: DashboardPage, meta: { auth: true } },
             { path: '/expenses', name: 'expenses', component: ExpenseListPage, meta: { auth: true } },
             { path: '/earnings', name: 'earnings', component: EarningListPage, meta: { auth: true, superAdmin: true } },
+            { path: '/on-hand', name: 'on-hand', component: OnHandPage, meta: { auth: true, staff: true } },
             { path: '/categories', name: 'categories', component: CategoryListPage, meta: { auth: true } },
             { path: '/reports', redirect: { name: 'report-monthly' } },
             { path: '/reports/monthly', name: 'report-monthly', component: MonthlyReportPage, meta: { auth: true, superAdmin: true } },
@@ -42,6 +44,7 @@ export function createAppRouter(): Router {
         const auth = useAuthStore();
         if (to.meta.auth && !auth.isAuthenticated) return { name: 'login', query: { redirect: to.fullPath } };
         if (to.meta.superAdmin && !auth.isSuperAdmin) return { name: 'forbidden' };
+        if (to.meta.staff && auth.user?.role !== 'staff') return { name: 'forbidden' };
         if (to.meta.guest && auth.isAuthenticated) return { name: 'dashboard' };
         return true;
     });

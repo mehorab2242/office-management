@@ -157,6 +157,14 @@ onMounted(load);
                 </section>
             </template>
             <template v-else>
+                <section v-if="dashboard?.on_hand" class="card mt-6">
+                    <div class="flex items-center justify-between gap-3"><div><h2 class="font-semibold">On Hand</h2><p class="text-sm text-slate-500">Money you received minus all expenses you recorded.</p></div><RouterLink :to="{ name: 'on-hand' }" class="shrink-0 text-sm font-medium text-brand-700">View history</RouterLink></div>
+                    <div class="mt-4 grid gap-4 sm:grid-cols-3">
+                        <div class="min-w-0 rounded-lg bg-slate-50 p-4"><p class="text-xs uppercase tracking-wide text-slate-500">Total Received</p><p class="mt-1 break-words text-lg font-semibold tabular-nums">{{ formatMoney(dashboard.on_hand.total_received) }}</p></div>
+                        <div class="min-w-0 rounded-lg bg-slate-50 p-4"><p class="text-xs uppercase tracking-wide text-slate-500">Total Expenses</p><p class="mt-1 break-words text-lg font-semibold tabular-nums">{{ formatMoney(dashboard.on_hand.total_expenses) }}</p></div>
+                        <div class="min-w-0 rounded-lg p-4" :class="Number(dashboard.on_hand.current_on_hand) < 0 ? 'bg-red-50' : 'bg-brand-50'"><p class="text-xs uppercase tracking-wide text-slate-500">Current On Hand</p><p class="mt-1 break-words text-lg font-semibold tabular-nums" :class="Number(dashboard.on_hand.current_on_hand) < 0 ? 'text-red-700' : 'text-brand-700'">{{ formatMoney(dashboard.on_hand.current_on_hand) }}</p></div>
+                    </div>
+                </section>
                 <div class="mt-6 grid gap-6 xl:grid-cols-[2fr_1fr]">
                     <section class="card"><div><h2 class="font-semibold">Your spending by category</h2><p class="text-sm text-slate-500">Your expense totals for the selected month.</p></div>
                         <div v-if="dashboard?.selected_month_categories?.length" class="mt-5 space-y-4"><div v-for="category in dashboard.selected_month_categories" :key="category.name" class="flex items-center justify-between border-b pb-3 last:border-0"><span class="text-sm font-medium">{{ category.name }}</span><span class="text-sm tabular-nums">{{ formatMoney(category.total) }}</span></div></div>

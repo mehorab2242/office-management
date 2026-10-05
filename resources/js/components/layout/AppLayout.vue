@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import { LayoutDashboard, Menu, ReceiptText, Tags, X, LogOut, ChartNoAxesColumn, FileUp, Users, History, CircleDollarSign } from '@lucide/vue';
+import { LayoutDashboard, Menu, ReceiptText, Tags, X, LogOut, ChartNoAxesColumn, FileUp, Users, History, CircleDollarSign, HandCoins } from '@lucide/vue';
 import { useAuthStore } from '../../stores/auth';
 import { useRouter } from 'vue-router';
 import { useToast } from '../../composables/useToast';
@@ -15,6 +15,7 @@ const links = [
     { name: 'expenses', label: 'Expenses', icon: ReceiptText },
     { name: 'report-monthly', label: 'Reports', icon: ChartNoAxesColumn, adminOnly: true },
     { name: 'earnings', label: 'Earnings', icon: CircleDollarSign, adminOnly: true },
+    { name: 'on-hand', label: 'On Hand', icon: HandCoins, staffOnly: true },
 ];
 
 async function handleLogout(): Promise<void> {
@@ -32,7 +33,7 @@ async function handleLogout(): Promise<void> {
                 <button class="rounded p-1 text-slate-300 lg:hidden" aria-label="Close navigation" @click="mobileOpen = false"><X class="size-5" /></button>
             </div>
             <nav class="flex-1 space-y-1 p-3" aria-label="Main navigation">
-                <RouterLink v-for="link in links.filter((item) => !item.adminOnly || auth.isSuperAdmin)" :key="link.name" :to="{ name: link.name }" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-300 hover:bg-white/10 hover:text-white" active-class="bg-brand-600 text-white" @click="mobileOpen = false">
+                <RouterLink v-for="link in links.filter((item) => (!item.adminOnly || auth.isSuperAdmin) && (!item.staffOnly || auth.user?.role === 'staff'))" :key="link.name" :to="{ name: link.name }" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-300 hover:bg-white/10 hover:text-white" active-class="bg-brand-600 text-white" @click="mobileOpen = false">
                     <component :is="link.icon" class="size-5" />{{ link.label }}
                 </RouterLink>
                 <RouterLink :to="{ name: 'categories' }" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-300 hover:bg-white/10 hover:text-white" active-class="bg-brand-600 text-white" @click="mobileOpen = false">

@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\ExpenseController;
 use App\Http\Controllers\Api\ExportController;
 use App\Http\Controllers\Api\ImportController;
 use App\Http\Controllers\Api\MonthlyReportController;
+use App\Http\Controllers\Api\OnHandReceiptController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Middleware\EnsureActiveUser;
@@ -23,6 +24,7 @@ Route::middleware(['auth:sanctum', EnsureActiveUser::class])->group(function ():
     Route::apiResource('categories', CategoryController::class);
     Route::apiResource('expenses', ExpenseController::class);
     Route::apiResource('earnings', EarningController::class);
+    Route::apiResource('on-hand-receipts', OnHandReceiptController::class);
     Route::post('/expenses/{expense}/attachments', [AttachmentController::class, 'store']);
     Route::get('/expenses/{expense}/attachments/{attachment}', [AttachmentController::class, 'show']);
     Route::delete('/expenses/{expense}/attachments/{attachment}', [AttachmentController::class, 'destroy']);

@@ -7,6 +7,8 @@ use App\Http\Resources\EarningResource;
 use App\Http\Resources\ExpenseResource;
 use App\Models\Earning;
 use App\Models\Expense;
+use App\Models\User;
+use App\Services\OnHandBalance;
 use App\Services\ReportService;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
@@ -16,7 +18,7 @@ use Illuminate\Support\Facades\Gate;
 
 class DashboardController extends Controller
 {
-    public function __invoke(Request $request, ReportService $reports): JsonResponse
+    public function __invoke(Request $request, ReportService $reports, OnHandBalance $onHandBalance): JsonResponse
     {
         Gate::authorize('viewAny', Expense::class);
 
@@ -86,6 +88,7 @@ class DashboardController extends Controller
                     (clone $baseQuery)->with(['category', 'creator', 'payerAllocations', 'attachments'])
                         ->orderByDesc('expense_date')->orderByDesc('id')->limit(5)->get()
                 )->resolve(),
+                'on_hand' => $user->role === User::ROLE_STAFF ? $onHandBalance->summary($user) : null,
             ],
         ]);
     }

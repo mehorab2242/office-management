@@ -44,6 +44,9 @@ export interface Expense {
 }
 export interface Earning { id: number; earning_date: string; source: string; description: string; amount: string; reference: string | null; note: string | null; created_by: User | null; }
 export interface EarningPayload { earning_date: string; source: string; description: string; amount: number; reference: string | null; note: string | null; }
+export interface OnHandReceipt { id: number; received_date: string; amount: string; note: string | null; }
+export interface OnHandReceiptPayload { received_date: string; amount: number; note: string | null; }
+export interface OnHandSummary { total_received: string; total_expenses: string; current_on_hand: string; }
 
 export interface Attachment { id: number; original_name: string; mime_type: string; file_size: number; created_at: string; }
 
@@ -104,6 +107,7 @@ export interface DashboardData extends Omit<DashboardSummary, 'financial'> {
     selected_month_daily_trend?: DailyFinancialTotal[] | null;
     recent_expenses?: Expense[];
     recent_transactions?: DashboardTransaction[] | null;
+    on_hand?: OnHandSummary | null;
 }
 export interface FinancialSummary { total_revenue: string; total_cost: string; net_profit: string; profit_margin: string; is_loss: boolean; transaction_count: number; }
 export interface DailyFinancialTotal { date: string; revenue: string; cost: string; }
