@@ -15,6 +15,7 @@ import UserListPage from '../pages/UserListPage.vue';
 import AuditLogPage from '../pages/AuditLogPage.vue';
 import EarningListPage from '../pages/EarningListPage.vue';
 import OnHandPage from '../pages/OnHandPage.vue';
+import ProfilePage from '../pages/ProfilePage.vue';
 
 export function createAppRouter(): Router {
     const router = createRouter({
@@ -23,6 +24,7 @@ export function createAppRouter(): Router {
             { path: '/', redirect: '/dashboard' },
             { path: '/login', name: 'login', component: LoginPage, meta: { guest: true } },
             { path: '/dashboard', name: 'dashboard', component: DashboardPage, meta: { auth: true } },
+            { path: '/profile', name: 'profile', component: ProfilePage, meta: { auth: true } },
             { path: '/expenses', name: 'expenses', component: ExpenseListPage, meta: { auth: true } },
             { path: '/earnings', name: 'earnings', component: EarningListPage, meta: { auth: true, superAdmin: true } },
             { path: '/on-hand', name: 'on-hand', component: OnHandPage, meta: { auth: true, staff: true } },

@@ -20,6 +20,7 @@ Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,
 
 Route::middleware(['auth:sanctum', EnsureActiveUser::class])->group(function (): void {
     Route::get('/me', [AuthController::class, 'me']);
+    Route::post('/me/password', [AuthController::class, 'changePassword'])->middleware('throttle:5,1');
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::apiResource('categories', CategoryController::class);
     Route::apiResource('expenses', ExpenseController::class);

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import { LayoutDashboard, Menu, ReceiptText, Tags, X, LogOut, ChartNoAxesColumn, FileUp, Users, History, CircleDollarSign, HandCoins } from '@lucide/vue';
+import { LayoutDashboard, Menu, ReceiptText, Tags, X, LogOut, ChartNoAxesColumn, FileUp, Users, History, CircleDollarSign, HandCoins, UserRound } from '@lucide/vue';
 import { useAuthStore } from '../../stores/auth';
 import { useRouter } from 'vue-router';
 import { useToast } from '../../composables/useToast';
@@ -38,6 +38,9 @@ async function handleLogout(): Promise<void> {
                 </RouterLink>
                 <RouterLink :to="{ name: 'categories' }" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-300 hover:bg-white/10 hover:text-white" active-class="bg-brand-600 text-white" @click="mobileOpen = false">
                     <Tags class="size-5" />Categories
+                </RouterLink>
+                <RouterLink :to="{ name: 'profile' }" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-300 hover:bg-white/10 hover:text-white" active-class="bg-brand-600 text-white" @click="mobileOpen = false">
+                    <UserRound class="size-5" />Profile
                 </RouterLink>
                 <template v-if="auth.isSuperAdmin">
                     <RouterLink :to="{ name: 'imports' }" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-300 hover:bg-white/10 hover:text-white" active-class="bg-brand-600 text-white" @click="mobileOpen = false"><FileUp class="size-5" />Import</RouterLink>
